@@ -1,6 +1,9 @@
 package edu.oswego.cs.game;
 
+import edu.oswego.cs.client.Command;
+
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,7 +30,16 @@ public class GameStateExcutor extends Thread {
                 }
                 while (lastActionExecuted.get() < lastActionConfirmed.get()) {
                     // execute command and increment lastActionExecuted.
-                    System.out.println(readOnlyLog.get(lastActionExecuted.incrementAndGet()));
+                    Action action = readOnlyLog.get(lastActionExecuted.incrementAndGet());
+                    String commandToBeParsed = action.getCommand();
+                    String[] brokenDownCommand = commandToBeParsed.split(" ", 2);
+                    Optional<Command> optionalCommand = Command.parse(brokenDownCommand[0]);
+                    if (optionalCommand.isPresent()) {
+                        Command command = optionalCommand.get();
+                        if (command.equals(Command.CHAT)) {
+                            if (brokenDownCommand.length > 1) System.out.println(brokenDownCommand[1]);
+                        }
+                    }
                 }
             }
         } catch (InterruptedException e) {
