@@ -1,9 +1,11 @@
 package edu.oswego.cs.raft;
 
+import edu.oswego.cs.client.Command;
 import edu.oswego.cs.game.Action;
 import edu.oswego.cs.game.GameStateMachine;
 
 import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 
@@ -31,12 +33,15 @@ public class Raft {
    private final GameStateMachine gsm;
    private final AtomicInteger lastActionConfirmed;
    private final AtomicBoolean gameActive = new AtomicBoolean(true);
+   private String userNameOfLeader;
+   private String clientUserName;
 
-   public Raft(int serverPort) throws SocketException {
+   public Raft(int serverPort, String clientUserName) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
       raftSessionActive = true;
       lastActionConfirmed = new AtomicInteger(-1);
       gsm = new GameStateMachine(log, lastActionConfirmed, gameActive);
+      this.clientUserName = clientUserName;
       queue.add("do");
       queue.add("the");
       queue.add("thing");
@@ -45,7 +50,6 @@ public class Raft {
    public void startHeartBeat() {
       TimerTask task = new TimerTask() {
          public void run() {
-            System.out.println("heartbeat");
             String command = queue.poll();
             int termNum = -1;
             if (command != null) {
@@ -83,6 +87,8 @@ public class Raft {
 
    public void startRaftGroup() {
       raftMembershipState = RaftMembershipState.LEADER;
+      this.userNameOfLeader = clientUserName;
+      sessionMap.put(clientUserName, serverSocket.getLocalSocketAddress());
       startHeartBeat();
       gsm.start();
    }
@@ -106,6 +112,17 @@ public class Raft {
             }
          } else {
             break;
+         }
+      }
+   }
+
+   public void sendMessage(String command) {
+      // get leader and send message
+      if (userNameOfLeader != null) {
+         if (clientUserName.equals(userNameOfLeader)) {
+            queue.add(command);
+         } else {
+            // send message to leader
          }
       }
    }
