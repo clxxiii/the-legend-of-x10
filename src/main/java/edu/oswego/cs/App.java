@@ -7,6 +7,6 @@ public class App {
 
     public static void main(String[] args) throws Exception {
         Floor floor = new Dungeon((long) 9128332).makeFloor();
-        System.out.println(floor);
+        System.out.println(floor.toString());
     }
 }

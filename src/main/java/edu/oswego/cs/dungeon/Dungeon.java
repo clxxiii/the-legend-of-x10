@@ -8,6 +8,7 @@ public class Dungeon {
 
   public Dungeon(long seed) {
     floors = new ArrayList<>();
+    this.seed = seed;
   }
 
   public Floor makeFloor() {

@@ -6,11 +6,11 @@ import java.util.Random;
 
 public class FloorGenerator {
   private long seed;
-  private Random rand;
+  private final Random rand;
   private RoomGenerator roomGen;
   private HashMap<String, Room> map = new HashMap<>();
   private LinkedList<Room> leaves = new LinkedList<>();
-  private static final int FLOOR_ROOM_COUNT = 15;
+  private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
 
   public FloorGenerator(long seed) {
@@ -38,6 +38,7 @@ public class FloorGenerator {
       makeBranches();
     }
 
+    floor.rooms = map;
     return floor;
   }
 
@@ -64,19 +65,43 @@ public class FloorGenerator {
       connected = true;
     }
     if (!connected) {
-      makeRoom(ExitEnum.random(), current);
+      makeRoom(ExitEnum.random(rand), current);
     }
   }
 
   private void makeRoom(ExitEnum exit, Room connectedRoom) {
-    if (map.containsKey(exit.x + "," + exit.y)) {
-      // TODO: Roll a die to determine whether or not to connect the rooms
+    int newX = connectedRoom.xPos + exit.x;
+    int newY = connectedRoom.yPos + exit.y;
+
+    if (map.containsKey(newX + "," + newY)) {
+      // Flip a coin, if heads, link the two rooms.
+      if (random(0))
+        return;
+      Room otherRoom = map.get(newX + "," + newY);
+      int xDiff = otherRoom.xPos - connectedRoom.xPos;
+      int yDiff = otherRoom.yPos - connectedRoom.yPos;
+      if (yDiff == 0) {
+        if (xDiff == 1) {
+          connectedRoom.eastExit = otherRoom;
+          otherRoom.westExit = connectedRoom;
+        }
+        if (xDiff == -1) {
+          connectedRoom.westExit = otherRoom;
+          otherRoom.eastExit = connectedRoom;
+        }
+      } else if (yDiff == 1) {
+        connectedRoom.northExit = otherRoom;
+        otherRoom.southExit = connectedRoom;
+      } else {
+        connectedRoom.southExit = otherRoom;
+        otherRoom.northExit = connectedRoom;
+      }
       return;
     }
 
     Room room = roomGen.generate();
-    room.setCoordinates(exit.x, exit.y);
-    map.put(connectedRoom.xPos + exit.x + "," + connectedRoom.yPos + exit.y, room);
+    room.setCoordinates(newX, newY);
+    map.put(newX + "," + newY, room);
     leaves.add(room);
 
     switch (exit) {
