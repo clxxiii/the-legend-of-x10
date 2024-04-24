@@ -16,8 +16,8 @@ public enum ExitEnum {
     this.y = y;
   }
 
-  public static ExitEnum random() {
-    int rand = new Random().nextInt(3);
+  public static ExitEnum random(Random random) {
+    int rand = random.nextInt(3);
     switch (rand) {
       case 0:
         return ExitEnum.NORTH;

@@ -5,6 +5,7 @@ import java.util.Random;
 public class RoomGenerator {
   private long seed;
   Random rand;
+  int createdRooms = 0;
 
   protected RoomGenerator(long seed) {
     this.seed = seed;
@@ -12,6 +13,8 @@ public class RoomGenerator {
   }
 
   protected Room generate() {
-    return new Room();
+    Room room = new Room();
+    room.roomNumber = createdRooms++;
+    return room;
   }
 }
