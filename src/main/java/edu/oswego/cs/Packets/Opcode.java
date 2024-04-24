@@ -5,7 +5,10 @@ import java.util.Optional;
 
 public enum Opcode {
     Connect(1),
-    Command(2);
+    Command(2),
+    Log(3),
+    Heartbeat(4),
+    Ack(5);
 
     public final short code;
 
