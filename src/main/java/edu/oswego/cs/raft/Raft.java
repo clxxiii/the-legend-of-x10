@@ -91,8 +91,8 @@ public class Raft {
       heartBeatTimer.cancel();
    }
 
-   public void addSession(String session, SocketAddress socketAddress) {
-      sessionMap.put(session, socketAddress);
+   public void addSession(String username, Session session) {
+      sessionMap.put(username, session);
    }
 
    public void startRaftGroup() {
