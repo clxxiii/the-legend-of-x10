@@ -30,19 +30,19 @@ public class PacketHandler extends Thread {
                 Opcode opcode = packet.opcode;
                 switch (opcode) {
                     case Connect:
-                        handleConnectPacket(packet);
+                        handleConnectPacket(packet, socketAddress);
                         break;
                     case Command:
-                        handleCommandPakcet(packet);
+                        handleCommandPakcet(packet, socketAddress);
                         break;
                     case Log:
-                        handleLogPacket(packet);
+                        handleLogPacket(packet, socketAddress);
                         break;
                     case Heartbeat:
-                        handleHeartbeatPacket(packet);
+                        handleHeartbeatPacket(packet, socketAddress);
                         break;
                     case Ack:
-                        handleAckPacket(packet);
+                        handleAckPacket(packet, socketAddress);
                         break;
                 }
             }
@@ -52,23 +52,38 @@ public class PacketHandler extends Thread {
         }
     }
 
-    public void handleConnectPacket(Packet packet) {
+    public void handleConnectPacket(Packet packet, SocketAddress clientAddr) {
         ConnectPacket connectPacket = (ConnectPacket) packet;
+        switch (connectPacket.subopcode) {
+            case ClientHello:
+                handleClientHello(connectPacket, clientAddr);
+                break;
+            case ServerHello:
+                break;
+            case ClientKey:
+                break;
+            case Log:
+                break;
+        }
     }
 
-    public void handleCommandPakcet(Packet packet) {
+    public void handleClientHello(ConnectPacket connectPacket, SocketAddress clientAddr) {
+        boolean successfulAdd = raft.addUser(connectPacket.username, clientAddr);
+    }
+
+    public void handleCommandPakcet(Packet packet, SocketAddress clientAddr) {
         CommandPacket commandPacket = (CommandPacket) packet;
     }
 
-    public void handleLogPacket(Packet packet) {
+    public void handleLogPacket(Packet packet, SocketAddress clientAddr) {
         LogCommandPacket logCommandPacket = (LogCommandPacket) packet;
     }
 
-    public void handleHeartbeatPacket(Packet packet) {
+    public void handleHeartbeatPacket(Packet packet, SocketAddress clientAddr) {
         HeartbeatPacket heartbeatPacket = (HeartbeatPacket) packet;
     }
 
-    public void handleAckPacket(Packet packet) {
+    public void handleAckPacket(Packet packet, SocketAddress clientAddr) {
         AckPacket ackPacket = (AckPacket) packet;
     }
 }
