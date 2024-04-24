@@ -165,25 +165,33 @@ public class Encryption {
         //Agent 1 generates the AES secret key
         agent1.generateSecretKey();
 
-        //Agent 1 encrypts the secret key using Agent 2's public key
-        byte[] encryptedMessage = agent1.encryptSecretKeyWithPublicKey(agent2.getPublicKey());
+        //We get Agent 2's public key, so Agent 1 encrypts the secret key with it
+        PublicKey receivedKey = agent2.getPublicKey();
+        byte[] encryptedMessage = agent1.encryptSecretKeyWithPublicKey(receivedKey);
 
-        //Agent 2 decrypts the secret key using its private key
+        //Agent 2 receives the encrypted secret key, so it decrypts it
         byte[] receivedSecret = agent2.decryptMessageWithPrivateKey(encryptedMessage);
 
-        int isSame = Arrays.compare(receivedSecret, agent1.secretKey.getEncoded());
+        boolean match = (Arrays.compare(receivedSecret, agent1.secretKey.getEncoded()) == 0);
 
-        System.out.println("Received secret: " + Arrays.toString(receivedSecret));
-        System.out.println("Original secret: " + Arrays.toString(agent1.secretKey.getEncoded()));
+        if(match) {
+            System.out.println("Matched keys!");
+        } else {
+            System.out.println("Mismatch");
+        }
 
+        //Set Agent 2's secret key
         agent2.secretKey = new SecretKeySpec(receivedSecret, 0, receivedSecret.length, "AES");
 
         String payload = "Look at me still talking when there's science to do...";
         System.out.println("Payload: " + payload);
         System.out.println("Payload bytes: " + Arrays.toString(payload.getBytes()));
+
+        //Agent 2 encrypts message with the secret key
         byte[] encryptedString = agent2.encryptMessageWithSecretKey(payload.getBytes());
         System.out.println("Encrypted string: " + Arrays.toString(encryptedString));
 
+        //Agent 1 is able to decrypt with the secret key
         byte[] decryptedBytes = agent1.decryptMessageWithSecretKey(encryptedString);
         System.out.println("Decrypted bytes: " + Arrays.toString(decryptedBytes));
         System.out.println("Decrypted string: " + new String(decryptedBytes));
