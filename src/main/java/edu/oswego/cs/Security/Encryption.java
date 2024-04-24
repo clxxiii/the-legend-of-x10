@@ -172,14 +172,6 @@ public class Encryption {
         //Agent 2 receives the encrypted secret key, so it decrypts it
         byte[] receivedSecret = agent2.decryptMessageWithPrivateKey(encryptedMessage);
 
-        boolean match = (Arrays.compare(receivedSecret, agent1.secretKey.getEncoded()) == 0);
-
-        if(match) {
-            System.out.println("Matched keys!");
-        } else {
-            System.out.println("Mismatch");
-        }
-
         //Set Agent 2's secret key
         agent2.secretKey = new SecretKeySpec(receivedSecret, 0, receivedSecret.length, "AES");
 
