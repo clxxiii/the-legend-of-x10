@@ -34,8 +34,8 @@ public abstract class Packet {
         //This seems redundant considering we got the stuff earlier straight from the bytes,
         //but that was necessary to validate we actually got a valid opcode.
         //TODO: Fill this out once we get actual packet types
-        switch (opcode.code) {
-            case 1:
+        switch (opcode) {
+            case Connect:
                 return ConnectPacket.bytesToPacket(buffer);
             default:
                 return null;
