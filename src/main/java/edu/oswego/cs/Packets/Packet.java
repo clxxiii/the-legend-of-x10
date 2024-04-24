@@ -16,7 +16,7 @@ public abstract class Packet {
 
     public abstract byte[] packetToBytes();
 
-    public static Packet packetToBytes(ByteBuffer buffer) throws ParseException {
+    public static Packet bytesToPacket(ByteBuffer buffer) throws ParseException {
         buffer.flip();
 
         //Get the opcode short from the packet
