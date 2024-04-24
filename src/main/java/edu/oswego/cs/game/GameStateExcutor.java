@@ -37,7 +37,7 @@ public class GameStateExcutor extends Thread {
                     if (optionalCommand.isPresent()) {
                         Command command = optionalCommand.get();
                         if (command.equals(Command.CHAT)) {
-                            if (brokenDownCommand.length > 1) System.out.println(brokenDownCommand[1]);
+                            if (brokenDownCommand.length > 1) System.out.println(action.getUserName() + ": " + brokenDownCommand[1]);
                         }
                     }
                 }

@@ -1,6 +1,7 @@
 package edu.oswego.cs.raft;
 
-enum RaftMembershipState {
+public enum RaftMembershipState {
+   PENDING_FOLLOWER,
    FOLLOWER,
    CANDIDATE,
    LEADER

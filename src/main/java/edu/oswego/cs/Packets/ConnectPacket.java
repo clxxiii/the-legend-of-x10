@@ -1,16 +1,20 @@
 package edu.oswego.cs.Packets;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Optional;
 
 public class ConnectPacket extends Packet{
     public final ConnectSubopcode subopcode;
+    public final String username;
     public final byte[]  data;
 
-    public ConnectPacket(ConnectSubopcode subopcode, byte[] data) {
+    public ConnectPacket(ConnectSubopcode subopcode, String username, byte[] data) {
         super(Opcode.Connect);
         this.subopcode = subopcode;
+        this.username = username;
         this.data = data;
     }
 
@@ -19,11 +23,14 @@ public class ConnectPacket extends Packet{
      * @return
      */
     public byte[] packetToBytes() {
-        int bufferLength  = 2 * (Short.BYTES) + data.length;
+        byte[] usernameBytes = username.getBytes(StandardCharsets.UTF_8);
+        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length;
 
         ByteBuffer buffer = ByteBuffer.allocate(bufferLength);
         buffer.putShort(this.opcode.code);
         buffer.putShort(this.subopcode.code);
+        buffer.put(usernameBytes);
+        buffer.put((byte) 0x00);
         buffer.put(data);
 
         buffer.flip();
@@ -45,11 +52,27 @@ public class ConnectPacket extends Packet{
             throw new ParseException("Invalid opcode", 0);
         }
         //Now get the ACTUAL opcode
-        ConnectSubopcode opcode = optionSubopcode.get();
+        ConnectSubopcode subOpcode = optionSubopcode.get();
+
+        // get original limit
+        int bufferLimit = buffer.limit();
+
+        buffer.mark();
+        while (buffer.hasRemaining() && buffer.get() != 0x00);
+        buffer.limit(buffer.position() - 1);
+        buffer.reset();
+        byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
+        buffer.get(usernameBytes);
+        String username = new String(usernameBytes);
+
+        // allow the buffer to continue past the string
+        buffer.limit(bufferLimit);
+        // get the null character
+        buffer.get();
 
         byte[] data = new byte[buffer.remaining()];
         buffer.get(data);
 
-        return new ConnectPacket(opcode, data);
+        return new ConnectPacket(subOpcode, username, data);
     }
 }
