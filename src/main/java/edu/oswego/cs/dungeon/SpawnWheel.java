@@ -9,7 +9,7 @@ public class SpawnWheel<T> {
   HashMap<String, Class<T>> spawnableList = new HashMap<>();
   int wheelSlices = 0;
   private long seed;
-  private int floor;
+  protected int floor;
   private Random rand;
 
   // I spent at least 30 minutes trying to fix the type cast warning and failed so

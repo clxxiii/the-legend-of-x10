@@ -17,7 +17,6 @@ public class FloorGenerator {
 
   private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
-  private int floorNum;
 
   public FloorGenerator(long seed) {
     this.seed = seed;
@@ -30,7 +29,6 @@ public class FloorGenerator {
     leaves.clear();
     roomsToMake = FLOOR_ROOM_COUNT;
 
-    this.floorNum = floorNum;
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
     roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel);

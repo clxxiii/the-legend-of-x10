@@ -1,8 +1,6 @@
 package edu.oswego.cs.dungeon;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class Dungeon {
   private ArrayList<Floor> floors;
