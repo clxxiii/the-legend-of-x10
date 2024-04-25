@@ -21,9 +21,17 @@ public class ConfirmCommandPacket extends CommandPacket {
         buffer.putShort(CommandSubopcode.ConfirmCommand.code);
         buffer.putInt(actionNum);
         buffer.put(usernameBytes);
-        buffer.reset();
+        buffer.rewind();
         byte[] packetBytes = new byte[byteCount];
         buffer.put(packetBytes);
         return packetBytes;
+    }
+
+    public static ConfirmCommandPacket bytesToPacket(ByteBuffer buffer) {
+        int actionNum = buffer.getInt();
+        byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
+        buffer.get(usernameBytes);
+        String username = new String(usernameBytes, StandardCharsets.UTF_8);
+        return new ConfirmCommandPacket(username, actionNum);
     }
 }

@@ -9,8 +9,10 @@ import java.util.Optional;
 //Comments are mine, however.
 public abstract class Packet {
     public final Opcode opcode;
+    public final String username;
 
-    protected Packet(Opcode opcode) {
+    protected Packet(String username, Opcode opcode) {
+        this.username = username;
         this.opcode = opcode;
     }
 
@@ -37,6 +39,12 @@ public abstract class Packet {
         switch (opcode) {
             case Connect:
                 return ConnectPacket.bytesToPacket(buffer);
+            case Ack:
+                return AckPacket.bytesToPacket(buffer);
+            case Heartbeat:
+                return HeartbeatPacket.bytesToPacket(buffer);
+            case Command:
+                return CommandPacket.bytesToPacket(buffer);
             default:
                 return null;
         }
