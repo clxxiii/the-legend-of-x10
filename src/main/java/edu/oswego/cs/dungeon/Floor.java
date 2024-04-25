@@ -61,6 +61,19 @@ public class Floor {
       output += row0 + "\n" + row1 + "\n" + row2 + "\n";
     }
 
+    // Print out the contents of each room:
+    for (Room room : rooms.values()) {
+      String roomString = room.prettyRoomNumber() + ": ";
+      for (Item i : room.items) {
+        roomString += i.name + ", ";
+      }
+      for (Entity e : room.entities) {
+        roomString += e.name + ", ";
+      }
+      roomString = roomString.substring(0, roomString.length() - 2);
+      output += roomString + "\n";
+    }
+
     return output;
   }
 }

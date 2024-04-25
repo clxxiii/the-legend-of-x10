@@ -1,26 +1,37 @@
 package edu.oswego.cs.dungeon;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Room {
-  protected int roomNumber;
-  protected Room northExit;
-  protected Room eastExit;
-  protected Room southExit;
-  protected Room westExit;
+  int roomNumber;
+  Room northExit;
+  Room eastExit;
+  Room southExit;
+  Room westExit;
 
-  protected List<Item> items;
-  protected List<Entity> entities;
+  List<Item> items;
+  List<Entity> entities;
 
-  protected int xPos;
-  protected int yPos;
+  int xPos;
+  int yPos;
 
-  protected Room() {
+  Room() {
+    items = new ArrayList<>();
+    entities = new ArrayList<>();
   }
 
-  protected void setCoordinates(int x, int y) {
+  void setCoordinates(int x, int y) {
     xPos = x;
     yPos = y;
+  }
+
+  void addItem(Item i) {
+    items.add(i);
+  }
+
+  void addEntity(Entity e) {
+    entities.add(e);
   }
 
   public String toString() {
