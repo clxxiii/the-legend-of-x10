@@ -35,4 +35,8 @@ public class Session {
     public boolean getTimedOut() {
         return timedOut.get();
     }
+
+    public void setLMRSTINT(long nanoTime) {
+        LMRSTINT.set(nanoTime);
+    }
 }
