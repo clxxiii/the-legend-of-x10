@@ -37,8 +37,8 @@ public class Raft {
    private final GameStateMachine gsm;
    private final AtomicInteger lastActionConfirmed;
    private final AtomicBoolean gameActive = new AtomicBoolean(true);
-   private String userNameOfLeader;
-   private String clientUserName;
+   private volatile String userNameOfLeader;
+   private volatile String clientUserName;
    private final RaftReceiver raftReceiver;
    private final AtomicBoolean keepReceiving = new AtomicBoolean(true);
 
@@ -187,5 +187,15 @@ public class Raft {
       if (session != null && session.getSocketAddress().toString().equals(socketAddress.toString())) {
          session.setLMRSTINT(System.nanoTime());
       }
+   }
+
+   public SocketAddress getLeaderAddr() {
+      if (userNameOfLeader != null) {
+         Session session = sessionMap.get(userNameOfLeader);
+         if (session != null) {
+            return session.getSocketAddress();
+         }
+      }
+      return null;
    }
 }
