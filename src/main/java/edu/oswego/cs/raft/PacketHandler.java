@@ -72,6 +72,9 @@ public class PacketHandler extends Thread {
             case Log:
                 handleConnectLog(connectPacket, socketAddr);
                 break;
+            case Redirect:
+                handleClientRedirect(connectPacket);
+                break;
         }
     }
 
@@ -89,7 +92,17 @@ public class PacketHandler extends Thread {
                 }
             }
         } else {
-            // TODO: send to leader
+            SocketAddress leaderAddr = raft.getLeaderAddr();
+            if (leaderAddr != null) {
+                ConnectionRedirectPacket connectionRedirectPacket = new ConnectionRedirectPacket(socketAddr, connectPacket.username, connectPacket.data);
+                byte[] packetBytes = connectionRedirectPacket.packetToBytes();
+                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, leaderAddr);
+                try {
+                    serverSocket.send(datagramPacket);
+                } catch (IOException e) {
+                    System.out.println("Unable to send datagram packet in method handleClientHello");
+                }
+            }
         }
     }
 
@@ -119,6 +132,26 @@ public class PacketHandler extends Thread {
             byte[] packetBytes = responsePacket.packetToBytes();
             DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddr);
             // TODO: start sending log
+        }
+    }
+
+    public void handleClientRedirect(ConnectPacket connectPacket) {
+        ConnectionRedirectPacket packet = (ConnectionRedirectPacket) connectPacket;
+        if (raft.raftMembershipState == RaftMembershipState.FOLLOWER) {
+            // send to leader
+            SocketAddress hostAddr = raft.getLeaderAddr();
+            if (hostAddr != null) {
+                byte[] packetBytes = packet.packetToBytes();
+                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, hostAddr);
+                try {
+                    serverSocket.send(datagramPacket);
+                } catch (IOException e) {
+                    System.out.println("Unable to send datagram packet in method handleClientRedirect");
+                }
+            }
+        } else if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+            // send a server hello
+            handleClientKey(packet, packet.originalAddress);
         }
     }
 

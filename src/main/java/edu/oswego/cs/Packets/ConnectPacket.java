@@ -53,25 +53,30 @@ public class ConnectPacket extends Packet{
         //Now get the ACTUAL opcode
         ConnectSubopcode subOpcode = optionSubopcode.get();
 
-        // get original limit
-        int bufferLimit = buffer.limit();
+        switch (subOpcode) {
+            case Redirect:
+                return ConnectionRedirectPacket.bytesToPacket(buffer);
+            default:
+                // get original limit
+                int bufferLimit = buffer.limit();
 
-        buffer.mark();
-        while (buffer.hasRemaining() && buffer.get() != 0x00);
-        buffer.limit(buffer.position() - 1);
-        buffer.reset();
-        byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
-        buffer.get(usernameBytes);
-        String username = new String(usernameBytes);
+                buffer.mark();
+                while (buffer.hasRemaining() && buffer.get() != 0x00) ;
+                buffer.limit(buffer.position() - 1);
+                buffer.reset();
+                byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
+                buffer.get(usernameBytes);
+                String username = new String(usernameBytes);
 
-        // allow the buffer to continue past the string
-        buffer.limit(bufferLimit);
-        // get the null character
-        buffer.get();
+                // allow the buffer to continue past the string
+                buffer.limit(bufferLimit);
+                // get the null character
+                buffer.get();
 
-        byte[] data = new byte[buffer.remaining()];
-        buffer.get(data);
+                byte[] data = new byte[buffer.remaining()];
+                buffer.get(data);
 
-        return new ConnectPacket(subOpcode, username, data);
+                return new ConnectPacket(subOpcode, username, data);
+        }
     }
 }
