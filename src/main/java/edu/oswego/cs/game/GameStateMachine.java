@@ -1,5 +1,7 @@
 package edu.oswego.cs.game;
 
+import edu.oswego.cs.raft.Raft;
+
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,15 +16,17 @@ public class GameStateMachine {
     private final AtomicInteger lastActionConfirmed;
     private final AtomicInteger lastActionExecuted = new AtomicInteger(-1);
     private final AtomicBoolean gameActive;
+    private final Raft raft;
 
-    public GameStateMachine(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive) {
+    public GameStateMachine(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, Raft raft) {
         this.readOnlyLog = readOnlyLog;
         this.lastActionConfirmed = lastActionConfirmed;
         this.gameActive = gameActive;
+        this.raft = raft;
     }
 
     public void start() {
-        gameService.execute(new GameStateExcutor(readOnlyLog, lastActionConfirmed, lastActionExecuted, gameActive));
+        gameService.execute(new GameStateExcutor(readOnlyLog, lastActionConfirmed, lastActionExecuted, gameActive, raft));
     }
 
     public void stop() {

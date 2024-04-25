@@ -8,13 +8,11 @@ import java.util.Optional;
 
 public class ConnectPacket extends Packet{
     public final ConnectSubopcode subopcode;
-    public final String username;
     public final byte[]  data;
 
     public ConnectPacket(ConnectSubopcode subopcode, String username, byte[] data) {
-        super(Opcode.Connect);
+        super(username, Opcode.Connect);
         this.subopcode = subopcode;
-        this.username = username;
         this.data = data;
     }
 
@@ -23,8 +21,9 @@ public class ConnectPacket extends Packet{
      * @return
      */
     public byte[] packetToBytes() {
-        byte[] usernameBytes = username.getBytes(StandardCharsets.UTF_8);
-        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length;
+        byte[] usernameBytes = this.username.getBytes(StandardCharsets.UTF_8);
+        int stringPaddingSize = 1;
+        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length + stringPaddingSize;
 
         ByteBuffer buffer = ByteBuffer.allocate(bufferLength);
         buffer.putShort(this.opcode.code);

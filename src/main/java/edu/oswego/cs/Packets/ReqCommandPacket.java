@@ -24,9 +24,31 @@ public class ReqCommandPacket extends CommandPacket {
         buffer.put(usernameBytes);
         buffer.put((byte) 0x00);
         buffer.put(commandBytes);
-        buffer.reset();
+        buffer.rewind();
         byte[] packetBytes = new byte[byteCount];
         buffer.put(packetBytes);
         return packetBytes;
+    }
+
+    public static ReqCommandPacket bytesToPacket(ByteBuffer buffer) {
+        // get original limit
+        int bufferLimit = buffer.limit();
+
+        buffer.mark();
+        while (buffer.hasRemaining() && buffer.get() != 0x00);
+        buffer.limit(buffer.position() - 1);
+        buffer.reset();
+        byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
+        buffer.get(usernameBytes);
+        String username = new String(usernameBytes, StandardCharsets.UTF_8);
+
+        buffer.limit(bufferLimit);
+        // get padding
+        buffer.get();
+
+        byte[] commandBytes = new byte[buffer.limit() - buffer.position()];
+        buffer.get(commandBytes);
+        String command = new String(commandBytes, StandardCharsets.UTF_8);
+        return new ReqCommandPacket(username, command);
     }
 }

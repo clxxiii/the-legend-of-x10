@@ -11,11 +11,13 @@ public class RaftReceiver extends Thread {
     private final AtomicBoolean keepReceiving;
     private final int DATA_PACKET_MAX_LEN = 1024;
     private final Raft localRaft;
+    private final String username;
 
-    public RaftReceiver(DatagramSocket serverSocket, AtomicBoolean keepReceiving, Raft localRaft) {
+    public RaftReceiver(DatagramSocket serverSocket, AtomicBoolean keepReceiving, Raft localRaft, String username) {
         this.serverSocket = serverSocket;
         this.keepReceiving = keepReceiving;
         this.localRaft = localRaft;
+        this.username = username;
     }
 
     @Override
@@ -25,7 +27,7 @@ public class RaftReceiver extends Thread {
                 byte[] data = new byte[DATA_PACKET_MAX_LEN];
                 DatagramPacket datagramPacket = new DatagramPacket(data, DATA_PACKET_MAX_LEN);
                 serverSocket.receive(datagramPacket);
-                (new PacketHandler(datagramPacket, localRaft)).start();
+                (new PacketHandler(datagramPacket, localRaft, username, serverSocket)).start();
             }
         } catch (IOException e) {
             // check if connection wasn't closed

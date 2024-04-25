@@ -29,8 +29,8 @@ public class Raft {
    private final Timer heartBeatTimer = new Timer();
    private final ConcurrentHashMap<String, Session> sessionMap = new ConcurrentHashMap<>();
    private final DatagramSocket serverSocket;
-   private volatile RaftMembershipState raftMembershipState;
-   private volatile boolean raftSessionActive;
+   public volatile RaftMembershipState raftMembershipState;
+   public volatile boolean raftSessionActive;
    private final ConcurrentLinkedQueue<Action> queue = new ConcurrentLinkedQueue<>();
    private final Lock logLock = new ReentrantLock();
    private final List<Action> log = new ArrayList<>();
@@ -44,11 +44,11 @@ public class Raft {
 
    public Raft(int serverPort, String clientUserName) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
-      raftSessionActive = true;
+      raftSessionActive = false;
       lastActionConfirmed = new AtomicInteger(-1);
-      gsm = new GameStateMachine(log, lastActionConfirmed, gameActive);
+      gsm = new GameStateMachine(log, lastActionConfirmed, gameActive, this);
       this.clientUserName = clientUserName;
-      raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this);
+      raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName);
       raftReceiver.start();
    }
 
@@ -69,9 +69,12 @@ public class Raft {
                }
 
             } else {
-               HeartbeatPacket heartbeatPacket = new HeartbeatPacket();
-               messageBytes = heartbeatPacket.packetToBytes();
+//               HeartbeatPacket heartbeatPacket = new HeartbeatPacket(clientUserName);
+//               messageBytes = heartbeatPacket.packetToBytes();
             }
+
+            HeartbeatPacket heartbeatPacket = new HeartbeatPacket(clientUserName);
+            messageBytes = heartbeatPacket.packetToBytes();
 
 
 
@@ -79,6 +82,12 @@ public class Raft {
                // TODO: send to socket address
                if (value.getMembershipState() == RaftMembershipState.FOLLOWER) {
                   SocketAddress socketAddress = value.getSocketAddress();
+                  DatagramPacket datagramPacket = new DatagramPacket(messageBytes, messageBytes.length, socketAddress);
+                  try {
+                     serverSocket.send(datagramPacket);
+                  } catch (IOException e) {
+                     System.err.println("An IOException was thrown while trying to send a heartbeat");
+                  }
                }
             });
          }
@@ -97,6 +106,7 @@ public class Raft {
 
    public void startRaftGroup() {
       raftMembershipState = RaftMembershipState.LEADER;
+      raftSessionActive = true;
       this.userNameOfLeader = clientUserName;
       sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState));
       startHeartBeat();
@@ -148,8 +158,34 @@ public class Raft {
       }
    }
 
+   public void addToRaftQueue(String command) {
+      queue.add(new Action(clientUserName, command));
+   }
+
    public boolean addUser(String username, SocketAddress clientAddress) {
       Session client = sessionMap.putIfAbsent(username, new Session(clientAddress, System.nanoTime(), RaftMembershipState.PENDING_FOLLOWER));
       return client == null;
+   }
+
+   public void setLeader(String username, Session session) {
+      userNameOfLeader = username;
+      sessionMap.put(username, session);
+   }
+
+   public boolean userIsPending(String username) {
+      Session session = sessionMap.get(username);
+      return session != null && session.getMembershipState() == RaftMembershipState.PENDING_FOLLOWER;
+   }
+
+   public boolean addrIsLeader(SocketAddress socketAddress) {
+      Session leaderSession = sessionMap.get(userNameOfLeader);
+      return leaderSession != null && leaderSession.getSocketAddress().toString().equals(socketAddress.toString());
+   }
+
+   public void updateSessionTimeStamp(String username, SocketAddress socketAddress) {
+      Session session = sessionMap.get(username);
+      if (session != null && session.getSocketAddress().toString().equals(socketAddress.toString())) {
+         session.setLMRSTINT(System.nanoTime());
+      }
    }
 }
