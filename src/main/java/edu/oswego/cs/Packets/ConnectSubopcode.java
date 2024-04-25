@@ -7,7 +7,8 @@ public enum ConnectSubopcode {
     ClientHello(1),
     ServerHello(2),
     ClientKey(3),
-    Log(4);
+    Log(4),
+    Redirect(5);
 
     public final short code;
 
