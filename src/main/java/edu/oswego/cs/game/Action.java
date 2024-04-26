@@ -4,13 +4,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Action {
     private String command;
-    private AtomicInteger numCommitted;
+    private AtomicInteger numConfirmed;
     private String userName;
 
     public Action(String userName, String command) {
         this.userName = userName;
         this.command = command;
-        this.numCommitted = new AtomicInteger(0);
+        this.numConfirmed = new AtomicInteger(0);
     }
 
     public String getCommand() {
@@ -22,10 +22,10 @@ public class Action {
     }
 
     public int getNumCommited() {
-        return numCommitted.get();
+        return numConfirmed.get();
     }
 
     public int incrementAndGetNumCommitted() {
-        return numCommitted.incrementAndGet();
+        return numConfirmed.incrementAndGet();
     }
 }
