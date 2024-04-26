@@ -8,7 +8,7 @@ public class ReqCommandPacket extends CommandPacket {
     public final String command;
 
     public ReqCommandPacket(String username, String command) {
-        super(CommandSubopcode.LogCommand, username);
+        super(CommandSubopcode.RequestCommand, username);
         this.command = command;
     }
 
@@ -26,7 +26,7 @@ public class ReqCommandPacket extends CommandPacket {
         buffer.put(commandBytes);
         buffer.rewind();
         byte[] packetBytes = new byte[byteCount];
-        buffer.put(packetBytes);
+        buffer.get(packetBytes);
         return packetBytes;
     }
 

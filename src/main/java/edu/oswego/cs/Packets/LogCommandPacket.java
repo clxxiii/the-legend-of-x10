@@ -29,7 +29,7 @@ public class LogCommandPacket extends CommandPacket{
         buffer.put(commandBytes);
         buffer.rewind();
         byte[] packetBytes = new byte[byteCount];
-        buffer.put(packetBytes);
+        buffer.get(packetBytes);
         return packetBytes;
     }
 

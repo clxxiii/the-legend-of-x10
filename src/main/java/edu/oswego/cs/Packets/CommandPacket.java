@@ -28,12 +28,12 @@ public abstract class CommandPacket extends Packet {
         switch (subopcode) {
             case RequestCommand:
                 return ReqCommandPacket.bytesToPacket(buffer);
+            case LogCommand:
+                return LogCommandPacket.bytesToPacket(buffer);
             case ConfirmCommand:
                 return ConfirmCommandPacket.bytesToPacket(buffer);
             case CommitCommand:
                 return CommitCommandPacket.bytesToPacket(buffer);
-            case LogCommand:
-                return LogCommandPacket.bytesToPacket(buffer);
             default:
                 return null;
         }

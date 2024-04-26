@@ -36,7 +36,7 @@ public class GameStateExcutor extends Thread {
                 synchronized (readOnlyLog) {
                     readOnlyLog.wait();
                 }
-                while (lastActionExecuted.get() < lastActionConfirmed.get()) {
+                while (lastActionExecuted.get() < lastActionConfirmed.get() && readOnlyLog.size() - 1 > lastActionExecuted.get()) {
                     // execute command and increment lastActionExecuted.
                     Action action = readOnlyLog.get(lastActionExecuted.incrementAndGet());
                     String commandToBeParsed = action.getCommand();

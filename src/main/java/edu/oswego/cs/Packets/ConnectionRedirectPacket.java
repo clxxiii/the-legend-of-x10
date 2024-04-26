@@ -56,7 +56,7 @@ public class ConnectionRedirectPacket extends ConnectPacket {
         buffer.limit(buffer.position() - 1);
         buffer.reset();
         byte[] addrBytes = new byte[buffer.limit() - buffer.position()];
-        buffer.get(usernameBytes);
+        buffer.get(addrBytes);
         String addr = new String(addrBytes);
         String[] addrSplit = addr.split(":");
         if (addrSplit.length != 2) return null;

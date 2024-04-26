@@ -45,6 +45,8 @@ public abstract class Packet {
                 return HeartbeatPacket.bytesToPacket(buffer);
             case Command:
                 return CommandPacket.bytesToPacket(buffer);
+            case Log:
+                return LogPacket.bytesToPacket(buffer);
             default:
                 return null;
         }

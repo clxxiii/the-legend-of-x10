@@ -1,9 +1,15 @@
 package edu.oswego.cs.raft;
 
+import edu.oswego.cs.game.Action;
+
 import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RaftReceiver extends Thread {
@@ -12,12 +18,22 @@ public class RaftReceiver extends Thread {
     private final int DATA_PACKET_MAX_LEN = 1024;
     private final Raft localRaft;
     private final String username;
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(5);
+    private final Object logConfirmerNotifier;
+    private final ConcurrentHashMap<Integer, Action> actionMap;
+    private final Object followerLogMaintainerObject;
+    private final List<Action> readOnlyLog;
 
-    public RaftReceiver(DatagramSocket serverSocket, AtomicBoolean keepReceiving, Raft localRaft, String username) {
+    public RaftReceiver(DatagramSocket serverSocket, AtomicBoolean keepReceiving, Raft localRaft, String username, Object logConfirmerNotifier, ConcurrentHashMap<Integer, Action> actionMap, Object followerLogMaintainerObject, List<Action> readOnlyLog) {
         this.serverSocket = serverSocket;
         this.keepReceiving = keepReceiving;
         this.localRaft = localRaft;
         this.username = username;
+        this.logConfirmerNotifier = logConfirmerNotifier;
+        this.actionMap = actionMap;
+        this.followerLogMaintainerObject = followerLogMaintainerObject;
+        this.readOnlyLog = readOnlyLog;
+
     }
 
     @Override
@@ -27,7 +43,7 @@ public class RaftReceiver extends Thread {
                 byte[] data = new byte[DATA_PACKET_MAX_LEN];
                 DatagramPacket datagramPacket = new DatagramPacket(data, DATA_PACKET_MAX_LEN);
                 serverSocket.receive(datagramPacket);
-                (new PacketHandler(datagramPacket, localRaft, username, serverSocket)).start();
+                (new PacketHandler(datagramPacket, localRaft, username, serverSocket, scheduledExecutorService, logConfirmerNotifier, actionMap, followerLogMaintainerObject, readOnlyLog)).start();
             }
         } catch (IOException e) {
             // check if connection wasn't closed
@@ -36,5 +52,6 @@ public class RaftReceiver extends Thread {
                 System.exit(1);
             }
         }
+        scheduledExecutorService.shutdown();
     }
 }
