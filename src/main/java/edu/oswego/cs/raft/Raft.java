@@ -1,9 +1,6 @@
 package edu.oswego.cs.raft;
 
-import edu.oswego.cs.Packets.ConnectPacket;
-import edu.oswego.cs.Packets.ConnectSubopcode;
-import edu.oswego.cs.Packets.HeartbeatPacket;
-import edu.oswego.cs.Packets.Opcode;
+import edu.oswego.cs.Packets.*;
 import edu.oswego.cs.client.Command;
 import edu.oswego.cs.game.Action;
 import edu.oswego.cs.game.GameStateMachine;
@@ -41,6 +38,10 @@ public class Raft {
    private volatile String clientUserName;
    private final RaftReceiver raftReceiver;
    private final AtomicBoolean keepReceiving = new AtomicBoolean(true);
+   private final Object logConfirmerObject = new Object();
+   private final Object followerLogMaintainerObject = new Object();
+   private final AtomicBoolean isFollower;
+   private final ConcurrentHashMap<Integer, Action> actionMap = new ConcurrentHashMap<>();
 
    public Raft(int serverPort, String clientUserName) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
@@ -48,7 +49,8 @@ public class Raft {
       lastActionConfirmed = new AtomicInteger(-1);
       gsm = new GameStateMachine(log, lastActionConfirmed, gameActive, this);
       this.clientUserName = clientUserName;
-      raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName);
+      raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log);
+      isFollower = new AtomicBoolean(true);
       raftReceiver.start();
    }
 
@@ -58,25 +60,23 @@ public class Raft {
             Action action = queue.poll();
             int termNum = -1;
             byte[] messageBytes;
+            Packet packet;
             if (action != null) {
                logLock.lock();
                try {
                   log.add(action);
                   termNum = log.size() - 1;
-                  confirmAction(termNum);
+                  sessionMap.get(userNameOfLeader).setGreatestActionConfirmed(termNum);
+
                } finally {
                   logLock.unlock();
                }
-
+               packet = new LogCommandPacket(action.getUserName(), termNum, action.getCommand());
+               messageBytes = packet.packetToBytes();
             } else {
-//               HeartbeatPacket heartbeatPacket = new HeartbeatPacket(clientUserName);
-//               messageBytes = heartbeatPacket.packetToBytes();
+               packet = new HeartbeatPacket(clientUserName);
+               messageBytes = packet.packetToBytes();
             }
-
-            HeartbeatPacket heartbeatPacket = new HeartbeatPacket(clientUserName);
-            messageBytes = heartbeatPacket.packetToBytes();
-
-
 
             sessionMap.forEachValue(Long.MAX_VALUE, (value) -> {
                // TODO: send to socket address
@@ -90,6 +90,11 @@ public class Raft {
                   }
                }
             });
+
+            // in case a log confirmer notification is missed.
+            synchronized (logConfirmerObject) {
+               logConfirmerObject.notify();
+            }
          }
       };
       long periodInMS = 100;
@@ -101,20 +106,35 @@ public class Raft {
    }
 
    public void addSession(String username, Session session) {
-      sessionMap.put(username, session);
+      // only add a user if they don't exist in the map
+      Session userSession = sessionMap.putIfAbsent(username, session);
+      if (userSession != null && userSession.getMembershipState() == RaftMembershipState.PENDING_FOLLOWER) {
+         userSession.setMembershipState(RaftMembershipState.PENDING_FOLLOWER, RaftMembershipState.FOLLOWER);
+      }
    }
 
    public void startRaftGroup() {
+      isFollower.set(false);
       raftMembershipState = RaftMembershipState.LEADER;
       raftSessionActive = true;
       this.userNameOfLeader = clientUserName;
+      queue.add(new Action(userNameOfLeader, RaftAdministrationCommand.ADD_MEMBER.name + " " + userNameOfLeader + " " + System.nanoTime() + " " + serverSocket.getLocalAddress().toString().replace("/", "")));
       sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState));
       startHeartBeat();
+      (new RaftLogConfirmer(logConfirmerObject, sessionMap, lastActionConfirmed, gameActive, clientUserName, serverSocket, log)).start();
       gsm.start();
    }
 
    public void exitRaft() {
       stopHeartBeat();
+      gameActive.set(false);
+      synchronized (logConfirmerObject) {
+         logConfirmerObject.notify();
+      }
+      isFollower.set(false);
+      synchronized (followerLogMaintainerObject) {
+         followerLogMaintainerObject.notify();
+      }
       keepReceiving.set(false);
       serverSocket.close();
       gsm.stop();
@@ -126,6 +146,8 @@ public class Raft {
          ConnectPacket connectPacket = new ConnectPacket(ConnectSubopcode.ClientHello, clientUserName, new byte[0]);
          byte[] connectHelloPacketBytes = connectPacket.packetToBytes();
          DatagramPacket packet = new DatagramPacket(connectHelloPacketBytes, connectHelloPacketBytes.length, groupAddress);
+         gsm.start();
+         (new RaftFollowerLogMaintainer(isFollower, logLock, log, lastActionConfirmed, followerLogMaintainerObject, actionMap)).start();
          serverSocket.send(packet);
       } catch (IOException e) {
          System.err.println("Something went wrong when trying to connect.");
@@ -133,7 +155,7 @@ public class Raft {
       }
    }
 
-   public void confirmAction(int index) {
+   public void commitAction(int index) {
       while (true) {
          int lastConfirmedIndex = lastActionConfirmed.get();
          if (index > lastConfirmedIndex) {
@@ -154,8 +176,22 @@ public class Raft {
             queue.add(new Action(clientUserName, command));
          } else {
             // send message to leader
+            ReqCommandPacket reqCommandPacket = new ReqCommandPacket(clientUserName, command);
+            byte[] packetBytes = reqCommandPacket.packetToBytes();
+            if (getLeaderAddr() != null) {
+               DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, getLeaderAddr());
+               try {
+                  serverSocket.send(datagramPacket);
+               } catch (IOException e) {
+                  System.err.println("An IOException was thrown while trying to send a server command request.");
+               }
+            }
          }
       }
+   }
+
+   public void addActionToQueue(Action action) {
+      queue.add(action);
    }
 
    public void addToRaftQueue(String command) {
@@ -197,5 +233,39 @@ public class Raft {
          }
       }
       return null;
+   }
+
+   public String getClientUserName() {
+      return clientUserName;
+   }
+
+   public int getLastActionConfirmed() {
+      return lastActionConfirmed.get();
+   }
+
+   public int getLogLength() {
+      return log.size();
+   }
+
+   public Action getLogIndex(int i) {
+      return log.get(i);
+   }
+
+   public void updateRaftFollowerGreatestConfirmedAction(String username, int actionNum) {
+      Session session = sessionMap.get(username);
+      if (session != null && session.getMembershipState() == RaftMembershipState.FOLLOWER) {
+         session.setGreatestActionConfirmed(actionNum);
+      }
+   }
+
+   // A method used for the worst case, log notification missed
+   public void notifyLog() {
+      synchronized (log) {
+         log.notify();
+      }
+   }
+
+   public int getLogPosition() {
+      return log.size() - 1;
    }
 }
