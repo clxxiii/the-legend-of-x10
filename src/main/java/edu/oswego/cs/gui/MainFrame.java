@@ -3,16 +3,23 @@ package edu.oswego.cs.gui;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 
 public class MainFrame extends JFrame {
 
     JPanel mainPanel;
+    JTextArea outputText;
+    JTextField inputField;
+
+    ArrayList<String> messages = new ArrayList<>();
+    int lastMessageAccessed = -1;
 
     public MainFrame() {
         setTitle("The Legend of X10");
 
 
         int borderSpacing = 10;
+        int inputFieldCharacterLimit = 256;
         String titleFontFamily = "Serif";
 
         //The big cheese
@@ -26,41 +33,52 @@ public class MainFrame extends JFrame {
         headerPanel.setBorder(BorderFactory.createEmptyBorder(borderSpacing, borderSpacing, borderSpacing, borderSpacing));
         headerPanel.add(header);
 
-        //Panel with output stuff - world events and the map
-        JPanel outputPanel = new JPanel(new GridLayout(1, 2));
+        //OUTPUT
 
         //World text stuff - world events go here
         //TODO: Consider different font stuff.  Maybe color or something.
-        JPanel worldTextPanel = new JPanel();       //Just a container, really
-        JTextArea outputText = new JTextArea("Output Text", 30, 40);
+        outputText = new JTextArea( 30, 40);
         outputText.setLineWrap(true);
         outputText.setEditable(false);
+
+        for(String message: messages) {
+            outputText.append(message);
+        }
+
+        JPanel worldTextPanel = new JPanel();       //Just a container, really
         worldTextPanel.add(outputText);
 
         //Set up a scroll pane so we can, well, scroll.  Stick the world panel into it
         JScrollPane worldTextScrollPane =
-                new JScrollPane(worldTextPanel,
-                                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+                new JScrollPane(
+                        worldTextPanel,
+                        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+                        JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
                 );
 
         //Map goes here
-        JPanel mapPanel = new JPanel();     //Nother container
         JTextArea mapOutput = new JTextArea("Map Area", 30, 40);
         mapOutput.setEditable(false);
+
+        JPanel mapPanel = new JPanel();     //Nother container
         mapPanel.add(mapOutput);
 
+        JPanel outputPanel = new JPanel(new GridLayout(1, 2));
         outputPanel.setBorder(BorderFactory.createEmptyBorder(borderSpacing, borderSpacing, borderSpacing, borderSpacing));
         outputPanel.add(worldTextScrollPane);
         outputPanel.add(mapPanel);
 
         //Input panel for user commands
-        JPanel inputPanel = new JPanel(new BorderLayout());
+        JLabel inputLabel = new JLabel("Input: ");
 
-        JTextField textField = new JTextField("Input");
-        textField.setFont(new Font(textField.getFont().getName(), Font.ITALIC, textField.getFont().getSize()));
+        inputField = new JTextField();
+        inputField.setFont(new Font(inputField.getFont().getName(), Font.ITALIC, inputField.getFont().getSize()));
+        inputField.setDocument(new JTextFieldLimit(inputFieldCharacterLimit));
+
+        JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.setBorder(BorderFactory.createEmptyBorder(borderSpacing, borderSpacing, borderSpacing, borderSpacing));
-        inputPanel.add(textField, BorderLayout.CENTER);
+        inputPanel.add(inputLabel, BorderLayout.WEST);
+        inputPanel.add(inputField, BorderLayout.CENTER);
 
         //Add it all to the main panel
         mainPanel.add(headerPanel, BorderLayout.NORTH);
@@ -78,7 +96,7 @@ public class MainFrame extends JFrame {
 //        setSize((int) (screenWidth / 2), (int) (screenHeight / 2));
 
         //Action listener stuff
-        textField.addActionListener(inputFieldAction);
+        inputField.addActionListener(inputFieldAction);
 
         //Final prep
         setResizable(false);                //Looks gross maximized otherwise
@@ -87,11 +105,35 @@ public class MainFrame extends JFrame {
         setVisible(true);                   //What it says on the tin
     }
 
+    //TODO: Will be modified to handle world events
     Action inputFieldAction = new AbstractAction() {
         @Override
         public void actionPerformed(ActionEvent actionEvent) {
-            System.out.println("Huzzah!");
+            Object source = actionEvent.getSource();
+
+            if(source == inputField) {
+                String inputText = inputField.getText();
+                System.out.println(inputText);
+
+                if(inputText.isEmpty()) return;
+                messages.add("You: " + inputText);
+                inputField.setText("");
+                updateOutputBox();
+            }
         }
     };
+
+    /**
+     * Updates the output box with the latest world messages.
+     */
+    public void updateOutputBox() {
+        if(lastMessageAccessed == messages.size()) return;
+        if(lastMessageAccessed == -1) lastMessageAccessed = 0;
+
+        for(int i = lastMessageAccessed; i < messages.size(); i++) {
+            outputText.append(messages.get(i) + "\n");
+            lastMessageAccessed++;
+        }
+    }
 
 }
