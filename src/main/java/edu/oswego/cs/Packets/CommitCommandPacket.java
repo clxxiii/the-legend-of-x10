@@ -23,7 +23,7 @@ public class CommitCommandPacket extends CommandPacket {
         buffer.put(usernameBytes);
         buffer.rewind();
         byte[] packetBytes = new byte[byteCount];
-        buffer.put(packetBytes);
+        buffer.get(packetBytes);
         return packetBytes;
     }
 
