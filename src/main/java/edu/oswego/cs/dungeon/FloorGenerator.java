@@ -8,8 +8,13 @@ public class FloorGenerator {
   private long seed;
   private final Random rand;
   private RoomGenerator roomGen;
+
+  private SpawnWheel<Item> itemWheel;
+  private SpawnWheel<Entity> entityWheel;
+
   private HashMap<String, Room> map = new HashMap<>();
   private LinkedList<Room> leaves = new LinkedList<>();
+
   private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
 
@@ -18,12 +23,15 @@ public class FloorGenerator {
     rand = new Random(this.seed);
   }
 
-  public Floor generate() {
+  public Floor generate(int floorNum) {
+    // Reset everything for next use
     map.clear();
     leaves.clear();
     roomsToMake = FLOOR_ROOM_COUNT;
 
-    roomGen = new RoomGenerator(seed);
+    itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
+    entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
+    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel);
 
     Floor floor = new Floor();
 
