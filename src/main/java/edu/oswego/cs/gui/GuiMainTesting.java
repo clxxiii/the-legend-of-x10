@@ -2,6 +2,7 @@ package edu.oswego.cs.gui;
 
 import edu.oswego.cs.dungeon.Dungeon;
 import edu.oswego.cs.dungeon.Floor;
+import edu.oswego.cs.mechanics.GameUser;
 
 
 public class GuiMainTesting {
@@ -10,10 +11,8 @@ public class GuiMainTesting {
         Dungeon dungeon = new Dungeon(123098123891l);
         Floor currentFloor = dungeon.makeFloor();
 
-        MainFrame frame = new MainFrame(dungeon, currentFloor);
+        GameUser user = new GameUser(currentFloor.getEntrance(), "Victor");
 
-        Floor newFloor = dungeon.makeFloor();
-        frame.currentFloor = newFloor;
-        frame.updateMapOutput();
+        MainFrame frame = new MainFrame(dungeon, currentFloor, user);
     }
 }

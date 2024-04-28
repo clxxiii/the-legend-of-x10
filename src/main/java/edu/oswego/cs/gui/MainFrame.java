@@ -2,6 +2,7 @@ package edu.oswego.cs.gui;
 
 import edu.oswego.cs.dungeon.Dungeon;
 import edu.oswego.cs.dungeon.Floor;
+import edu.oswego.cs.mechanics.GameUser;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,14 +15,17 @@ public class MainFrame extends JFrame {
     JTextArea outputText;
     JTextArea mapOutput;
     JTextField inputField;
-    Dungeon dungeon;
-    Floor currentFloor;
     ArrayList<String> messages = new ArrayList<>();
     int lastMessageAccessed = -1;
 
-    public MainFrame(Dungeon dungeon, Floor currentFloor) {
+    Dungeon dungeon;
+    Floor currentFloor;
+    GameUser user;
+
+    public MainFrame(Dungeon dungeon, Floor currentFloor, GameUser user) {
         this.dungeon = dungeon;
         this.currentFloor = currentFloor;
+        this.user = user;
         initialize();
     }
 
@@ -55,9 +59,10 @@ public class MainFrame extends JFrame {
         outputText.setLineWrap(true);
         outputText.setEditable(false);
 
-        for(String message: messages) {
-            outputText.append(message);
-        }
+        messages.add("Welcome to the dungeon, " + user.username + "!");
+        messages.add("Current room: " + user.getRoomNumber());
+
+        updateOutputBox();
 
         JPanel worldTextPanel = new JPanel();       //Just a container, really
         worldTextPanel.add(outputText);
@@ -196,7 +201,45 @@ public class MainFrame extends JFrame {
                 System.out.println(inputText);
 
                 if(inputText.isEmpty()) return;
-                messages.add("You: " + inputText);
+
+                //TODO: I think Dave has code in his stuff to break down user actions.
+                messages.add("\nCommand attempted:" + inputText + "\n");
+                String[] chunked = inputText.split(" ");
+
+                //TODO: These should be in the enums for Raft, but I don't want to muck with that without Dave
+                switch(chunked[0].toUpperCase()) {
+                    case(".CHAT"):
+                        if(chunked.length == 1) {
+                            messages.add("Nothing to say!");
+                            break;
+                        }
+
+                        String chatMessage = inputText.substring(chunked[0].length() + 1);
+
+                        messages.add("You: " + chatMessage);
+
+                        break;
+                    case(".MOVE"):
+                        if(chunked.length == 1) {
+                            messages.add("Nowhere to go!");
+                            break;
+                        }
+
+                        char direction = chunked[1].charAt(0);
+                        boolean success = user.changeRooms(direction);
+
+                        if(success) {
+                            messages.add("Moved " + chunked[1] + ". Current room: " + user.getRoomNumber());
+                        } else {
+                            messages.add("No room that way!");
+                        }
+
+                        break;
+                    default:
+                        messages.add("Didn't understand that!");
+                        System.out.println("Didn't understand that!");
+                }
+
                 inputField.setText("");
                 updateOutputBox();
             }
