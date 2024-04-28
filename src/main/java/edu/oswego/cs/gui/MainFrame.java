@@ -1,5 +1,8 @@
 package edu.oswego.cs.gui;
 
+import edu.oswego.cs.dungeon.Dungeon;
+import edu.oswego.cs.dungeon.Floor;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -9,12 +12,24 @@ public class MainFrame extends JFrame {
 
     JPanel mainPanel;
     JTextArea outputText;
+    JTextArea mapOutput;
     JTextField inputField;
-
+    Dungeon dungeon;
+    Floor currentFloor;
     ArrayList<String> messages = new ArrayList<>();
     int lastMessageAccessed = -1;
 
+    public MainFrame(Dungeon dungeon, Floor currentFloor) {
+        this.dungeon = dungeon;
+        this.currentFloor = currentFloor;
+        initialize();
+    }
+
     public MainFrame() {
+        initialize();
+    }
+
+    public void initialize() {
         setTitle("The Legend of X10");
 
 
@@ -36,7 +51,6 @@ public class MainFrame extends JFrame {
         //OUTPUT
 
         //World text stuff - world events go here
-        //TODO: Consider different font stuff.  Maybe color or something.
         outputText = new JTextArea( 30, 40);
         outputText.setLineWrap(true);
         outputText.setEditable(false);
@@ -57,7 +71,73 @@ public class MainFrame extends JFrame {
                 );
 
         //Map goes here
-        JTextArea mapOutput = new JTextArea("Map Area", 30, 40);
+        mapOutput = new JTextArea("Map Area", 30, 40);
+        //NOTE: The font NEEDS to be a fixed-width font like Courier otherwise the map won't print right.
+        mapOutput.setFont(new Font("Courier", Font.PLAIN, 12));
+        if(currentFloor != null) mapOutput.setText(currentFloor.toString());
+
+        //TODO: This is dummy data.  Use floor.toString() when debug info is cleared out
+        //Smaller maps get wedged into a corner, but it looks like to reformat that we'll have to
+        //adjust the toString() method itself.
+        String mapText =
+                "     ┌───┐     ┌───┐\n" +
+                "     │008│     │004│\n" +
+                "     └─ ─┘     └─ ─┘\n" +
+                "┌───┐┌─ ─┐┌───┐┌─ ─┐\n" +
+                "│009  003  000  001│\n" +
+                "└───┘└─ ─┘└─ ─┘└─ ─┘\n" +
+                "     ┌─ ─┐┌─ ─┐┌─ ─┐\n" +
+                "     │007  002  005│\n" +
+                "     └───┘└─ ─┘└───┘\n" +
+                "          ┌─ ─┐     \n" +
+                "          │006│     \n" +
+                "          └───┘";
+
+        String bigMapText =
+                        "                                             ┌───┐┌───┐┌───┐                    \n" +
+                        "                                             │097  074  096│                    \n" +
+                        "                                             └───┘└─ ─┘└─ ─┘                    \n" +
+                        "                                   ┌───┐          ┌─ ─┐┌─ ─┐┌───┐               \n" +
+                        "                                   │077│          │056││075││098│               \n" +
+                        "                                   └─ ─┘          └─ ─┘└─ ─┘└─ ─┘               \n" +
+                        "                              ┌───┐┌─ ─┐┌───┐     ┌─ ─┐┌─ ─┐┌─ ─┐┌───┐          \n" +
+                        "                              │079││058  078│     │044  057  076  099│          \n" +
+                        "                              └─ ─┘└─ ─┘└───┘     └─ ─┘└─ ─┘└───┘└───┘          \n" +
+                        "               ┌───┐          ┌─ ─┐┌─ ─┐┌───┐┌───┐┌─ ─┐┌─ ─┐     ┌───┐          \n" +
+                        "               │091│          │059  046  036││030  035  045│     │082│          \n" +
+                        "               └─ ─┘          └─ ─┘└─ ─┘└─ ─┘└─ ─┘└───┘└─ ─┘     └─ ─┘          \n" +
+                        "          ┌───┐┌─ ─┐┌───┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐     ┌─ ─┐┌───┐┌─ ─┐          \n" +
+                        "          │093  070  053  069││080││037  031  024│     │062  048  061│          \n" +
+                        "          └─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘     └─ ─┘└─ ─┘└─ ─┘          \n" +
+                        "          ┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐┌───┐┌───┐\n" +
+                        "          │072  092││041││081  060  047││025  017││026  032  038  049  063  083│\n" +
+                        "          └─ ─┘└───┘└─ ─┘└───┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└───┘\n" +
+                        "┌───┐┌───┐┌─ ─┐┌───┐┌─ ─┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐     \n" +
+                        "│095  073  055  043  034  029  022  015  019││010││018  039  050  064  084│     \n" +
+                        "└───┘└───┘└─ ─┘└─ ─┘└─ ─┘└───┘└───┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└───┘└─ ─┘└─ ─┘└───┘     \n" +
+                        "          ┌─ ─┐┌─ ─┐┌─ ─┐          ┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌───┐┌─ ─┐┌─ ─┐          \n" +
+                        "          │071  054  042│          │008  012  004  011││087  065││085│          \n" +
+                        "          └─ ─┘└───┘└─ ─┘          └─ ─┘└─ ─┘└─ ─┘└───┘└───┘└─ ─┘└───┘          \n" +
+                        "          ┌─ ─┐     ┌─ ─┐┌───┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐          ┌─ ─┐               \n" +
+                        "          │094│     │023  016  009  003  000  001│          │086│               \n" +
+                        "          └───┘     └─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘          └───┘               \n" +
+                        "                    ┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐                              \n" +
+                        "                    │028  021  014  007  002  005│                              \n" +
+                        "                    └───┘└─ ─┘└─ ─┘└───┘└─ ─┘└───┘                              \n" +
+                        "          ┌───┐┌───┐┌───┐┌─ ─┐┌─ ─┐     ┌─ ─┐                                   \n" +
+                        "          │088  066││051││027  020│     │006│                                   \n" +
+                        "          └───┘└─ ─┘└─ ─┘└─ ─┘└───┘     └─ ─┘                                   \n" +
+                        "          ┌───┐┌─ ─┐┌─ ─┐┌─ ─┐          ┌─ ─┐                                   \n" +
+                        "          │068  052  040  033│          │013│                                   \n" +
+                        "          └─ ─┘└─ ─┘└───┘└───┘          └───┘                                   \n" +
+                        "          ┌─ ─┐┌─ ─┐                                                            \n" +
+                        "          │090││067│                                                            \n" +
+                        "          └───┘└─ ─┘                                                            \n" +
+                        "               ┌─ ─┐                                                            \n" +
+                        "               │089│                                                            \n" +
+                        "               └───┘  ";
+
+        //mapOutput.setText(mapText);
         mapOutput.setEditable(false);
 
         JPanel mapPanel = new JPanel();     //Nother container
@@ -134,6 +214,13 @@ public class MainFrame extends JFrame {
             outputText.append(messages.get(i) + "\n");
             lastMessageAccessed++;
         }
+    }
+
+    /**
+     * Call this when the floor changes so we have an updated map showing in the panel.
+     */
+    public void updateMapOutput() {
+        mapOutput.setText(currentFloor.toString());
     }
 
 }

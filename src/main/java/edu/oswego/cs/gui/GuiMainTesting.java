@@ -1,11 +1,19 @@
 package edu.oswego.cs.gui;
 
-import javax.swing.*;
-import java.awt.*;
+import edu.oswego.cs.dungeon.Dungeon;
+import edu.oswego.cs.dungeon.Floor;
+
 
 public class GuiMainTesting {
 
     public static void main(String[] args) throws Exception {
-        MainFrame frame = new MainFrame();
+        Dungeon dungeon = new Dungeon(123098123891l);
+        Floor currentFloor = dungeon.makeFloor();
+
+        MainFrame frame = new MainFrame(dungeon, currentFloor);
+
+        Floor newFloor = dungeon.makeFloor();
+        frame.currentFloor = newFloor;
+        frame.updateMapOutput();
     }
 }
