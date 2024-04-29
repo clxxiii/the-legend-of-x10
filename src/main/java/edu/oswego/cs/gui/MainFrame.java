@@ -1,13 +1,17 @@
 package edu.oswego.cs.gui;
 
+import edu.oswego.cs.client.Command;
 import edu.oswego.cs.dungeon.Dungeon;
 import edu.oswego.cs.dungeon.Entity;
 import edu.oswego.cs.dungeon.Floor;
 import edu.oswego.cs.dungeon.GameUser;
+import edu.oswego.cs.raft.Raft;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class MainFrame extends JFrame {
 
@@ -17,20 +21,28 @@ public class MainFrame extends JFrame {
     JTextField inputField;
     ArrayList<String> messages = new ArrayList<>();
     int lastMessageAccessed = -1;
+    private Raft raft;
 
     Dungeon dungeon;
     Floor currentFloor;
     GameUser user;
 
-    public MainFrame(Dungeon dungeon, Floor currentFloor, GameUser user) {
+    public MainFrame() { }
+
+    public void setDungeon(Dungeon dungeon) {
         this.dungeon = dungeon;
-        this.currentFloor = currentFloor;
-        this.user = user;
-        initialize();
     }
 
-    public MainFrame() {
-        initialize();
+    public void setCurrentFloor(Floor floor) {
+        this.currentFloor = floor;
+    }
+
+    public void setUser(GameUser user) {
+        this.user = user;
+    }
+
+    public void setRaft(Raft raft) {
+        this.raft = raft;
     }
 
     public void initialize() {
@@ -200,46 +212,55 @@ public class MainFrame extends JFrame {
 
             if(source == inputField) {
                 String inputText = inputField.getText();
-                System.out.println(inputText);
+//                System.out.println(inputText);
 
                 if(inputText.isEmpty()) return;
-
+                if(raft == null) {
+                    inputField.setText("");
+                    addMessage("Raft is not initialized yet.");
+                }
                 //TODO: I think Dave has code in his stuff to break down user actions.
                 messages.add("\nCommand attempted: " + inputText + "\n");
                 String[] chunked = inputText.split(" ");
 
+                Optional<Command> optionalCommand = Command.parse(chunked[0].toLowerCase());
                 //TODO: These should be in the enums for Raft, but I don't want to muck with that without Dave
-                switch(chunked[0].toUpperCase()) {
-                    case(".CHAT"):
-                        if(chunked.length == 1) {
-                            messages.add("Nothing to say!");
+                if (optionalCommand.isPresent()) {
+                    Command command = optionalCommand.get();
+                    switch (command) {
+                        case CHAT:
+                            if (chunked.length == 1) {
+                                messages.add("Nothing to say!");
+                                break;
+                            }
+
+//                            String chatMessage = inputText.substring(chunked[0].length() + 1);
+                            raft.sendMessage(inputText);
+//                            messages.add("You: " + chatMessage);
+
                             break;
-                        }
-
-                        String chatMessage = inputText.substring(chunked[0].length() + 1);
-
-                        messages.add("You: " + chatMessage);
-
-                        break;
-                    case(".MOVE"):
-                        if(chunked.length == 1) {
-                            messages.add("Nowhere to go!"); //TODO: List exits
-                            break;
-                        }
-
-                        char direction = chunked[1].charAt(0);
-                        boolean success = user.changeRooms(direction);
-
-                        if(success) {
-                            messages.add("Moved " + chunked[1] + ". Current room: " + user.getRoomNumber());
-                        } else {
-                            messages.add("No room that way!");
-                        }
-
-                        updateRoomEnemies();
-                        break;
-                    default:
-                        messages.add("Didn't understand that!");
+//                        case :
+//                            if (chunked.length == 1) {
+//                                messages.add("Nowhere to go!"); //TODO: List exits
+//                                break;
+//                            }
+//
+//                            char direction = chunked[1].charAt(0);
+//                            boolean success = user.changeRooms(direction);
+//
+//                            if (success) {
+//                                messages.add("Moved " + chunked[1] + ". Current room: " + user.getRoomNumber());
+//                            } else {
+//                                messages.add("No room that way!");
+//                            }
+//
+//                            updateRoomEnemies();
+//                            break;
+                        default:
+                            messages.add("Didn't understand that!");
+                    }
+                } else {
+                    messages.add("Didn't understand that!");
                 }
 
                 inputField.setText("");
@@ -274,6 +295,11 @@ public class MainFrame extends JFrame {
         for(Entity entity: user.currentRoom.entities) {
             messages.add("Enemy in room! " + entity.name + " spawned in!");
         }
+    }
+
+    public void addMessage(String message) {
+        messages.add(message);
+        updateOutputBox();
     }
 
 }

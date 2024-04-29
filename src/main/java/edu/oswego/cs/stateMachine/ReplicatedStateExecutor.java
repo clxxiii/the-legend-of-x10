@@ -1,7 +1,11 @@
 package edu.oswego.cs.stateMachine;
 
 import edu.oswego.cs.client.Command;
+import edu.oswego.cs.dungeon.Dungeon;
+import edu.oswego.cs.dungeon.Floor;
+import edu.oswego.cs.dungeon.GameUser;
 import edu.oswego.cs.game.Action;
+import edu.oswego.cs.gui.MainFrame;
 import edu.oswego.cs.raft.Raft;
 import edu.oswego.cs.raft.RaftAdministrationCommand;
 import edu.oswego.cs.raft.RaftMembershipState;
@@ -14,20 +18,31 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ReplicatedStateExcutor extends Thread {
+public class ReplicatedStateExecutor extends Thread {
 
     private final List<Action> readOnlyLog;
     private final AtomicInteger lastActionConfirmed;
     private final AtomicInteger lastActionExecuted;
     private final AtomicBoolean gameActive;
     private final Raft raft;
+    private final MainFrame mainFrame;
+    private final String clientUsername;
 
-    public ReplicatedStateExcutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft) {
+    public ReplicatedStateExecutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft, MainFrame mainFrame, String clientUsername) {
         this.readOnlyLog = readOnlyLog;
         this.lastActionConfirmed = lastActionConfirmed;
         this.gameActive = gameActive;
         this.lastActionExecuted = lastActionExecuted;
         this.raft = raft;
+        this.mainFrame = mainFrame;
+        this.clientUsername = clientUsername;
+        Dungeon dungeon = new Dungeon(123098123891l);
+        mainFrame.setDungeon(dungeon);
+        Floor currentFloor = dungeon.makeFloor();
+        mainFrame.setCurrentFloor(currentFloor);
+        GameUser user = new GameUser(currentFloor.getEntrance(), clientUsername);
+        mainFrame.setUser(user);
+        mainFrame.initialize();
     }
 
     @Override
@@ -41,13 +56,12 @@ public class ReplicatedStateExcutor extends Thread {
                     // execute command and increment lastActionExecuted.
                     Action action = readOnlyLog.get(lastActionExecuted.incrementAndGet());
                     String commandToBeParsed = action.getCommand();
-                    System.out.println(commandToBeParsed);
                     String[] brokenDownCommand = commandToBeParsed.split(" ", 2);
                     Optional<Command> optionalCommand = Command.parse(brokenDownCommand[0]);
                     if (optionalCommand.isPresent()) {
                         Command command = optionalCommand.get();
                         if (command.equals(Command.CHAT)) {
-                            if (brokenDownCommand.length > 1) System.out.println(action.getUserName() + ": " + brokenDownCommand[1]);
+                            if (brokenDownCommand.length > 1) mainFrame.addMessage(action.getUserName() + ": " + brokenDownCommand[1]);
                         }
                     } else {
                         Optional<RaftAdministrationCommand> optionalRaftAdministrationCommand = RaftAdministrationCommand.parse(brokenDownCommand[0]);

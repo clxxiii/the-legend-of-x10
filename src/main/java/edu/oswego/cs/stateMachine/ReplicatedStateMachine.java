@@ -1,6 +1,7 @@
 package edu.oswego.cs.stateMachine;
 
 import edu.oswego.cs.game.Action;
+import edu.oswego.cs.gui.MainFrame;
 import edu.oswego.cs.raft.Raft;
 
 import java.util.List;
@@ -17,16 +18,20 @@ public class ReplicatedStateMachine {
     private final AtomicInteger lastActionExecuted = new AtomicInteger(-1);
     private final AtomicBoolean gameActive;
     private final Raft raft;
+    private final MainFrame mainFrame;
+    private final String clientUsername;
 
-    public ReplicatedStateMachine(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, Raft raft) {
+    public ReplicatedStateMachine(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, Raft raft, MainFrame mainFrame, String clientUsername) {
         this.readOnlyLog = readOnlyLog;
         this.lastActionConfirmed = lastActionConfirmed;
         this.gameActive = gameActive;
         this.raft = raft;
+        this.mainFrame = mainFrame;
+        this.clientUsername = clientUsername;
     }
 
     public void start() {
-        gameService.execute(new ReplicatedStateExcutor(readOnlyLog, lastActionConfirmed, lastActionExecuted, gameActive, raft));
+        gameService.execute(new ReplicatedStateExecutor(readOnlyLog, lastActionConfirmed, lastActionExecuted, gameActive, raft, mainFrame, clientUsername));
     }
 
     public void stop() {
