@@ -36,6 +36,8 @@ public class ReplicatedStateExecutor extends Thread {
         this.raft = raft;
         this.mainFrame = mainFrame;
         this.clientUsername = clientUsername;
+
+        //TODO: This stuff will get ripped apart
         Dungeon dungeon = new Dungeon(123098123891l);
         mainFrame.setDungeon(dungeon);
         Floor currentFloor = dungeon.makeFloor();
@@ -60,9 +62,28 @@ public class ReplicatedStateExecutor extends Thread {
                     Optional<Command> optionalCommand = Command.parse(brokenDownCommand[0]);
                     if (optionalCommand.isPresent()) {
                         Command command = optionalCommand.get();
-                        if (command.equals(Command.CHAT)) {
-                            if (brokenDownCommand.length > 1) mainFrame.addMessage(action.getUserName() + ": " + brokenDownCommand[1]);
+
+                        switch(command) {
+                            case CHAT:
+                                if (brokenDownCommand.length > 1) mainFrame.addMessage(action.getUserName() + ": " + brokenDownCommand[1]);
+                                break;
+                            case EXIT:
+                                raft.exitRaft();
+                                break;
+                            case MOVE:
+                                char direction = brokenDownCommand[1].charAt(0);
+                                boolean success = mainFrame.user.changeRooms(direction);
+
+                                //TODO: Move the user, etc. into ReplicatedStateExecutor and not the gui
+                                if (success) {
+                                    mainFrame.addMessage("Moved " + brokenDownCommand[1] + ". Current room: " + mainFrame.user.getRoomNumber());
+                                } else {
+                                    mainFrame.addMessage("No room that way!");
+                                }
+
+                                mainFrame.listRoomEnemies();
                         }
+                    //vvvv  NO TOUCH  vvvvv
                     } else {
                         Optional<RaftAdministrationCommand> optionalRaftAdministrationCommand = RaftAdministrationCommand.parse(brokenDownCommand[0]);
                         if (optionalRaftAdministrationCommand.isPresent()) {
