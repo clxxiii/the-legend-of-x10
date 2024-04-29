@@ -3,15 +3,16 @@ package edu.oswego.cs.dungeon;
 import java.util.ArrayList;
 import java.util.List;
 
+//CHANGE BY VICTOR: Made room references public, made prettyRoomNumber public
 public class Room {
   int roomNumber;
-  Room northExit;
-  Room eastExit;
-  Room southExit;
-  Room westExit;
+  public Room northExit;
+  public Room eastExit;
+  public Room southExit;
+  public Room westExit;
 
-  List<Item> items;
-  List<Entity> entities;
+  public List<Item> items;
+  public List<Entity> entities;
 
   int xPos;
   int yPos;
@@ -45,7 +46,7 @@ public class Room {
         "└─" + bottomChar + "─┘";
   }
 
-  String prettyRoomNumber() {
+  public String prettyRoomNumber() {
     if (roomNumber < 10) {
       return "00" + roomNumber;
     } else if (roomNumber < 100) {
