@@ -11,8 +11,8 @@ public class Room {
   public Room southExit;
   public Room westExit;
 
-  List<Item> items;
-  List<Entity> entities;
+  public List<Item> items;
+  public List<Entity> entities;
 
   int xPos;
   int yPos;

@@ -1,12 +1,9 @@
-package edu.oswego.cs.mechanics;
-
-import edu.oswego.cs.dungeon.Item;
-import edu.oswego.cs.dungeon.Room;
+package edu.oswego.cs.dungeon;
 
 import java.util.ArrayList;
 
 //TODO: Will likely get moved to the game package, but not sure if Eli's doing stuff in there  for room generation atm.
-public class GameUser {
+public class GameUser implements Fightable{
 
     public final String username;
 
@@ -14,12 +11,12 @@ public class GameUser {
     /**
      * Room the user is in.
      */
-    Room currentRoom;
+    public Room currentRoom;
 
     /**
      * Items the user currently has.
      */
-    ArrayList<Item> inventory;
+    public ArrayList<Item> inventory;
 
     //TODO: Consider making this atomic
     /**
@@ -38,7 +35,7 @@ public class GameUser {
         this.username = username;
     }
 
-
+    @Override
     public int getHp() { return hp; }
 
     public String getRoomNumber() {
@@ -49,6 +46,7 @@ public class GameUser {
      * Check if player's dead.
      * @return True if HP is 0, false otherwise.
      */
+    @Override
     public boolean isDead() {
         return getHp() == 0;
     }
@@ -58,6 +56,7 @@ public class GameUser {
      * @param damage Amount of HP to deduct.
      * @return HP remaining.
      */
+    @Override
     public int attacked(int damage) {
         if(hp - damage < 0) {
             hp = 0;
@@ -66,6 +65,11 @@ public class GameUser {
         }
 
         return hp;
+    }
+
+    @Override
+    public void attack(String target) {
+
     }
 
     /**

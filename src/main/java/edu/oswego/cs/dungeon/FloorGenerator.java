@@ -145,8 +145,7 @@ public class FloorGenerator {
 
   /**
    * Generates a random boolean with a specific chance (out of 100)
-   * 
-   * @param r
+   *
    * @param chance
    * @return
    */

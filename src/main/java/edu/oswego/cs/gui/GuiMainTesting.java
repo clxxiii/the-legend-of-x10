@@ -2,7 +2,7 @@ package edu.oswego.cs.gui;
 
 import edu.oswego.cs.dungeon.Dungeon;
 import edu.oswego.cs.dungeon.Floor;
-import edu.oswego.cs.mechanics.GameUser;
+import edu.oswego.cs.dungeon.GameUser;
 
 
 public class GuiMainTesting {
