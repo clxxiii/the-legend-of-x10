@@ -1,5 +1,6 @@
 package edu.oswego.cs.raft;
 
+import edu.oswego.cs.Security.Encryption;
 import edu.oswego.cs.game.Action;
 
 import javax.xml.crypto.Data;
@@ -23,8 +24,9 @@ public class RaftReceiver extends Thread {
     private final ConcurrentHashMap<Integer, Action> actionMap;
     private final Object followerLogMaintainerObject;
     private final List<Action> readOnlyLog;
+    private final Encryption encryption;
 
-    public RaftReceiver(DatagramSocket serverSocket, AtomicBoolean keepReceiving, Raft localRaft, String username, Object logConfirmerNotifier, ConcurrentHashMap<Integer, Action> actionMap, Object followerLogMaintainerObject, List<Action> readOnlyLog) {
+    public RaftReceiver(DatagramSocket serverSocket, AtomicBoolean keepReceiving, Raft localRaft, String username, Object logConfirmerNotifier, ConcurrentHashMap<Integer, Action> actionMap, Object followerLogMaintainerObject, List<Action> readOnlyLog, Encryption encryption) {
         this.serverSocket = serverSocket;
         this.keepReceiving = keepReceiving;
         this.localRaft = localRaft;
@@ -33,7 +35,7 @@ public class RaftReceiver extends Thread {
         this.actionMap = actionMap;
         this.followerLogMaintainerObject = followerLogMaintainerObject;
         this.readOnlyLog = readOnlyLog;
-
+        this.encryption = encryption;
     }
 
     @Override
@@ -43,7 +45,7 @@ public class RaftReceiver extends Thread {
                 byte[] data = new byte[DATA_PACKET_MAX_LEN];
                 DatagramPacket datagramPacket = new DatagramPacket(data, DATA_PACKET_MAX_LEN);
                 serverSocket.receive(datagramPacket);
-                (new PacketHandler(datagramPacket, localRaft, username, serverSocket, scheduledExecutorService, logConfirmerNotifier, actionMap, followerLogMaintainerObject, readOnlyLog)).start();
+                (new PacketHandler(datagramPacket, localRaft, username, serverSocket, scheduledExecutorService, logConfirmerNotifier, actionMap, followerLogMaintainerObject, readOnlyLog, encryption)).start();
             }
         } catch (IOException e) {
             // check if connection wasn't closed

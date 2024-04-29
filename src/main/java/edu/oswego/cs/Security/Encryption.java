@@ -64,6 +64,7 @@ public class Encryption {
     //Used Kirill's answer here: https://stackoverflow.com/questions/29575024/is-there-any-difference-if-i-init-aes-cipher-with-and-without-ivparameterspec
     //More on IVs: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation
     public byte[] encryptMessageWithSecretKey(byte[] message)  {
+        if (secretKey == null) return null;
         try {
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 
@@ -95,6 +96,7 @@ public class Encryption {
     //Used Kirill's answer here: https://stackoverflow.com/questions/29575024/is-there-any-difference-if-i-init-aes-cipher-with-and-without-ivparameterspec
     //More on IVs: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation
     public byte[] decryptMessageWithSecretKey(byte[] encryptedMessage) {
+        if (secretKey == null) return null;
         try {
             //Should be 16
             byte[] receivedIv = new byte[ivSize];
@@ -187,6 +189,10 @@ public class Encryption {
         byte[] decryptedBytes = agent1.decryptMessageWithSecretKey(encryptedString);
         System.out.println("Decrypted bytes: " + Arrays.toString(decryptedBytes));
         System.out.println("Decrypted string: " + new String(decryptedBytes));
+    }
+
+    public void setSecretKey(SecretKey secretKey) {
+        this.secretKey = secretKey;
     }
 
 }

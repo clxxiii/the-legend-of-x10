@@ -1,6 +1,7 @@
 package edu.oswego.cs.raft;
 
 import edu.oswego.cs.Packets.*;
+import edu.oswego.cs.Security.Encryption;
 import edu.oswego.cs.game.Action;
 import edu.oswego.cs.gui.MainFrame;
 import edu.oswego.cs.stateMachine.ReplicatedStateMachine;
@@ -41,14 +42,16 @@ public class Raft {
    private final AtomicBoolean isFollower;
    private final ConcurrentHashMap<Integer, Action> actionMap = new ConcurrentHashMap<>();
    private final MainFrame mainFrame;
+   private final Encryption encryption = new Encryption();
 
    public Raft(int serverPort, String clientUserName, MainFrame mainFrame) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
+      encryption.generateKeys();
       raftSessionActive = false;
       lastActionConfirmed = new AtomicInteger(-1);
       rsm = new ReplicatedStateMachine(log, lastActionConfirmed, gameActive, this, mainFrame, clientUserName);
       this.clientUserName = clientUserName;
-      raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log);
+      raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log, encryption);
       isFollower = new AtomicBoolean(true);
       this.mainFrame = mainFrame;
       raftReceiver.start();
@@ -82,12 +85,7 @@ public class Raft {
                // TODO: send to socket address
                if (value.getMembershipState() == RaftMembershipState.FOLLOWER) {
                   SocketAddress socketAddress = value.getSocketAddress();
-                  DatagramPacket datagramPacket = new DatagramPacket(messageBytes, messageBytes.length, socketAddress);
-                  try {
-                     serverSocket.send(datagramPacket);
-                  } catch (IOException e) {
-                     System.err.println("An IOException was thrown while trying to send a heartbeat");
-                  }
+                  sendHeartBeatPacket(messageBytes, socketAddress);
                }
             });
 
@@ -115,6 +113,7 @@ public class Raft {
 
    public void startRaftGroup() {
       isFollower.set(false);
+      encryption.generateSecretKey();
       raftMembershipState = RaftMembershipState.LEADER;
       raftSessionActive = true;
       this.userNameOfLeader = clientUserName;
@@ -143,8 +142,8 @@ public class Raft {
    public void joinRaftGroup(SocketAddress groupAddress) {
       try {
          raftMembershipState = RaftMembershipState.FOLLOWER;
-         ConnectPacket connectPacket = new ConnectPacket(ConnectSubopcode.ClientHello, clientUserName, new byte[0]);
-         byte[] connectHelloPacketBytes = connectPacket.packetToBytes();
+         ConnectionClientHelloPacket clientHelloPacket = new ConnectionClientHelloPacket(clientUserName, encryption.getPublicKey());
+         byte[] connectHelloPacketBytes = clientHelloPacket.packetToBytes();
          DatagramPacket packet = new DatagramPacket(connectHelloPacketBytes, connectHelloPacketBytes.length, groupAddress);
          rsm.start();
          (new RaftFollowerLogMaintainer(isFollower, logLock, log, lastActionConfirmed, followerLogMaintainerObject, actionMap)).start();
@@ -267,5 +266,16 @@ public class Raft {
 
    public int getLogPosition() {
       return log.size() - 1;
+   }
+
+   public void sendHeartBeatPacket(byte[] bytes, SocketAddress socketAddress) {
+      byte[] encryptedBytes = encryption.encryptMessageWithSecretKey(bytes);
+      if (encryptedBytes != null) {
+         try {
+            serverSocket.send(new DatagramPacket(encryptedBytes, encryptedBytes.length, socketAddress));
+         } catch (IOException e) {
+            System.err.println("An IOException is thrown when trying to send a heartbeat.");
+         }
+      }
    }
 }

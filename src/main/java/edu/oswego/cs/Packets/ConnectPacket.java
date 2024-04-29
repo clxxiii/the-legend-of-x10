@@ -56,6 +56,10 @@ public class ConnectPacket extends Packet{
         switch (subOpcode) {
             case Redirect:
                 return ConnectionRedirectPacket.bytesToPacket(buffer);
+            case ClientHello:
+                return ConnectionClientHelloPacket.bytesToPacket(buffer);
+            case ServerHello:
+                return ConnectionServerHelloPacket.bytesToPacket(buffer);
             default:
                 // get original limit
                 int bufferLimit = buffer.limit();
