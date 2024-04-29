@@ -1,8 +1,10 @@
 package edu.oswego.cs.raft;
 
 import edu.oswego.cs.Packets.*;
+import edu.oswego.cs.Security.Encryption;
 import edu.oswego.cs.game.Action;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -10,13 +12,14 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PacketHandler extends Thread {
-    private final DatagramPacket packet;
+    private final DatagramPacket datagramPacket;
     private final Raft raft;
     private final String serverUsername;
     private final DatagramSocket serverSocket;
@@ -25,9 +28,10 @@ public class PacketHandler extends Thread {
     private final ConcurrentHashMap<Integer, Action> actionMap;
     private final Object followerLogMaintainerObject;
     private final List<Action> readOnlyLog;
+    private final Encryption encryption;
 
-    public PacketHandler(DatagramPacket packet, Raft raft, String serverUsername, DatagramSocket serverSocket, ScheduledExecutorService scheduledExecutorService, Object logConfirmerNotifier, ConcurrentHashMap<Integer, Action> actionMap, Object followerLogMaintainerObject, List<Action> readOnlyLog) {
-        this.packet = packet;
+    public PacketHandler(DatagramPacket packet, Raft raft, String serverUsername, DatagramSocket serverSocket, ScheduledExecutorService scheduledExecutorService, Object logConfirmerNotifier, ConcurrentHashMap<Integer, Action> actionMap, Object followerLogMaintainerObject, List<Action> readOnlyLog, Encryption encryption) {
+        this.datagramPacket = packet;
         this.raft = raft;
         this.serverUsername = serverUsername;
         this.serverSocket = serverSocket;
@@ -36,42 +40,64 @@ public class PacketHandler extends Thread {
         this.actionMap = actionMap;
         this.followerLogMaintainerObject = followerLogMaintainerObject;
         this.readOnlyLog = readOnlyLog;
+        this.encryption = encryption;
     }
 
     @Override
     public void run() {
         // do the thing
-        SocketAddress socketAddress = packet.getSocketAddress();
-        byte[] packetData = packet.getData();
+        SocketAddress socketAddress = datagramPacket.getSocketAddress();
+        byte[] packetData = datagramPacket.getData();
         ByteBuffer packetBuffer = ByteBuffer.allocate(packetData.length);
         packetBuffer.put(packetData);
-        packetBuffer.limit(packet.getLength());
+        packetBuffer.limit(datagramPacket.getLength());
         try {
             Packet packet = Packet.bytesToPacket(packetBuffer);
             if (packet != null) {
                 Opcode opcode = packet.opcode;
-                switch (opcode) {
-                    case Connect:
-                        handleConnectPacket(packet, socketAddress);
-                        break;
-                    case Command:
-                        handleCommandPakcet(packet, socketAddress);
-                        break;
-                    case Log:
-                        handleLogPacket(packet, socketAddress);
-                        break;
-                    case Heartbeat:
-                        handleHeartbeatPacket(packet, socketAddress);
-                        break;
-                    case Ack:
-                        handleAckPacket(packet, socketAddress);
-                        break;
+                if (opcode == Opcode.Connect) {
+                    ConnectPacket connectPacket = (ConnectPacket) packet;
+                    if (connectPacket.subopcode == ConnectSubopcode.ClientHello) {
+                        handleClientHello(connectPacket, socketAddress);
+                    } else if (connectPacket.subopcode == ConnectSubopcode.ServerHello) {
+                        handleServerHello(connectPacket, socketAddress);
+                    } else if (connectPacket.subopcode == ConnectSubopcode.Redirect) {
+                        handleClientRedirect(connectPacket);
+                    }
+                }
+            } else {
+                byte[] decryptedBytes = encryption.decryptMessageWithSecretKey(packetData);
+                if (decryptedBytes == null) return;
+                packetBuffer.reset();
+                packetBuffer.limit(datagramPacket.getLength());
+                packetBuffer.put(decryptedBytes);
+                packet = Packet.bytesToPacket(packetBuffer);
+                if (packet != null) {
+                    Opcode opcode = packet.opcode;
+                    switch (opcode) {
+                        case Connect:
+                            handleConnectPacket(packet, socketAddress);
+                            break;
+                        case Command:
+                            handleCommandPacket(packet, socketAddress);
+                            break;
+                        case Log:
+                            handleLogPacket(packet, socketAddress);
+                            break;
+                        case Heartbeat:
+                            handleHeartbeatPacket(packet, socketAddress);
+                            break;
+                        case Ack:
+                            handleAckPacket(packet, socketAddress);
+                            break;
+                    }
                 }
             }
         } catch (ParseException e) {
             // Packet parsing exception thrown, ignore the packet
             System.out.println("Packet parsing exception thrown.");
         }
+
     }
 
     public void handleConnectPacket(Packet packet, SocketAddress socketAddr) {
@@ -97,44 +123,34 @@ public class PacketHandler extends Thread {
     }
 
     public void handleClientHello(ConnectPacket connectPacket, SocketAddress socketAddr) {
+        ConnectionClientHelloPacket clientHelloPacket = (ConnectionClientHelloPacket) connectPacket;
         if (raft.raftMembershipState == RaftMembershipState.LEADER) {
             boolean successfulAdd = raft.addUser(connectPacket.username, socketAddr);
             if (successfulAdd) {
-                ConnectPacket responsePacket = new ConnectPacket(ConnectSubopcode.ServerHello, serverUsername, new byte[0]);
+                ConnectPacket responsePacket = new ConnectionServerHelloPacket(serverUsername, encryption.encryptSecretKeyWithPublicKey(clientHelloPacket.publicKey));
                 byte[] packetBytes = responsePacket.packetToBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddr);
-                try {
-                    serverSocket.send(datagramPacket);
-                } catch (IOException e) {
-                    System.out.println("Unable to send datagram packet in method handleClientHello");
-                }
+                sendPacket(packetBytes, socketAddr);
             }
         } else {
             SocketAddress leaderAddr = raft.getLeaderAddr();
             if (leaderAddr != null) {
                 ConnectionRedirectPacket connectionRedirectPacket = new ConnectionRedirectPacket(socketAddr, connectPacket.username, connectPacket.data);
                 byte[] packetBytes = connectionRedirectPacket.packetToBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, leaderAddr);
-                try {
-                    serverSocket.send(datagramPacket);
-                } catch (IOException e) {
-                    System.out.println("Unable to send datagram packet in method handleClientHello");
-                }
+                sendPacket(packetBytes, socketAddr);
             }
         }
     }
 
     public void handleServerHello(ConnectPacket connectPacket, SocketAddress socketAddr) {
+        ConnectionServerHelloPacket connectionServerHelloPacket = (ConnectionServerHelloPacket) connectPacket;
         if (!raft.raftSessionActive) {
             raft.setLeader(connectPacket.username, new Session(socketAddr, System.nanoTime(), RaftMembershipState.LEADER));
+            byte[] encryptedSecretKey = connectionServerHelloPacket.encryptedSecretKey;
+            byte[] secretKeyBytes = encryption.decryptMessageWithPrivateKey(encryptedSecretKey);
+            encryption.setSecretKey(new SecretKeySpec(secretKeyBytes, 0, secretKeyBytes.length, "AES"));
             ConnectPacket responsePacket = new ConnectPacket(ConnectSubopcode.ClientKey, serverUsername, new byte[0]);
             byte[] packetBytes = responsePacket.packetToBytes();
-            DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddr);
-            try {
-                serverSocket.send(datagramPacket);
-            } catch (IOException e) {
-                System.out.println("Unable to send datagram packet in method handleServerHello");
-            }
+            sendPacket(packetBytes, socketAddr);
         }
     }
 
@@ -160,11 +176,7 @@ public class PacketHandler extends Thread {
                     byte[] logPacketBytes = logCommandPacket.packetToBytes();
                     // schedule these log command sends
                     scheduledExecutorService.schedule(() -> {
-                        try {
-                            serverSocket.send(new DatagramPacket(logPacketBytes, logPacketBytes.length, socketAddr));
-                        } catch (IOException e) {
-                            System.err.println("Unable to send scheduled log command.");
-                        }
+                        sendPacket(logPacketBytes, socketAddr);
                     }, 5L * i, TimeUnit.MILLISECONDS);
                 }
             } catch (IOException e) {
@@ -180,12 +192,7 @@ public class PacketHandler extends Thread {
             SocketAddress hostAddr = raft.getLeaderAddr();
             if (hostAddr != null) {
                 byte[] packetBytes = packet.packetToBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, hostAddr);
-                try {
-                    serverSocket.send(datagramPacket);
-                } catch (IOException e) {
-                    System.out.println("Unable to send datagram packet in method handleClientRedirect");
-                }
+                sendPacket(packetBytes, hostAddr);
             }
         } else if (raft.raftMembershipState == RaftMembershipState.LEADER) {
             // send a server hello
@@ -199,7 +206,7 @@ public class PacketHandler extends Thread {
         }
     }
 
-    public void handleCommandPakcet(Packet packet, SocketAddress socketAddr) {
+    public void handleCommandPacket(Packet packet, SocketAddress socketAddr) {
         CommandPacket commandPacket = (CommandPacket) packet;
         switch (commandPacket.commandSubopcode) {
             case RequestCommand:
@@ -229,11 +236,7 @@ public class PacketHandler extends Thread {
             byte[] packetBytes = logCommandPacket.packetToBytes();
             // schedule these log command sends
             scheduledExecutorService.schedule(() -> {
-                try {
-                    serverSocket.send(new DatagramPacket(packetBytes, packetBytes.length, socketAddr));
-                } catch (IOException e) {
-                    System.err.println("Unable to send scheduled log command.");
-                }
+                sendPacket(packetBytes, socketAddr);
                 }, 5L * i, TimeUnit.MILLISECONDS);
         }
     }
@@ -257,12 +260,7 @@ public class PacketHandler extends Thread {
             // confirm addition
             ConfirmCommandPacket confirmCommandPacket = new ConfirmCommandPacket(serverUsername, logCommandPacket.actionNum);
             byte[] packetBytes = confirmCommandPacket.packetToBytes();
-            DatagramPacket packet = new DatagramPacket(packetBytes, packetBytes.length, socketAddress);
-            try {
-                serverSocket.send(packet);
-            } catch (IOException e) {
-                System.err.println("An IOException was thrown while trying to send a log addition confirmation packet.");
-            }
+            sendPacket(packetBytes, socketAddress);
         }
     }
 
@@ -279,12 +277,7 @@ public class PacketHandler extends Thread {
         // send the position they should be commited up to
         CommitCommandPacket commitCommandPacket = new CommitCommandPacket(raft.getClientUserName(), raft.getLastActionConfirmed());
         byte[] packetBytes = commitCommandPacket.packetToBytes();
-        DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddress);
-        try {
-            serverSocket.send(datagramPacket);
-        } catch (IOException e) {
-            System.err.println("An IOException was thrown when trying to handle a confirmed command packet");
-        }
+        sendPacket(packetBytes, socketAddress);
     }
 
     public void handleCommitCommandPacket(CommandPacket commandPacket, SocketAddress socketAddress) {
@@ -295,12 +288,7 @@ public class PacketHandler extends Thread {
                 // TODO request missing log packets
                 LogPacket logPacket = new LogPacket(serverUsername, raft.getLogPosition());
                 byte[] packetBytes = logPacket.packetToBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddress);
-                try {
-                    serverSocket.send(datagramPacket);
-                } catch (IOException e) {
-                    System.err.println("An IOException was thrown when trying to request a log catchup.");
-                }
+                sendPacket(packetBytes, socketAddress);
             }
         }
     }
@@ -309,12 +297,7 @@ public class PacketHandler extends Thread {
         if (raft.addrIsLeader(socketAddr)) {
             AckPacket ackPacket = new AckPacket(serverUsername);
             byte[] packetBytes = ackPacket.packetToBytes();
-            DatagramPacket responsePacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddr);
-            try {
-                serverSocket.send(responsePacket);
-            } catch (IOException e) {
-                System.out.println("Unable to send datagram packet in method handleHeartbeatPacket");
-            }
+            sendPacket(packetBytes, socketAddr);
             // Account for worst case where log notification is missed upon log commit.
             raft.notifyLog();
             synchronized (followerLogMaintainerObject) {
@@ -329,6 +312,17 @@ public class PacketHandler extends Thread {
             // update last message received
             raft.updateSessionTimeStamp(packet.username, socketAddr);
 //            System.out.println("Ack received from Raft Follower.");
+        }
+    }
+
+    public void sendPacket(byte[] bytes, SocketAddress socketAddress) {
+        byte[] encryptedBytes = encryption.encryptMessageWithSecretKey(bytes);
+        if (encryptedBytes != null) {
+            try {
+                serverSocket.send(new DatagramPacket(encryptedBytes, encryptedBytes.length, socketAddress));
+            } catch (IOException e) {
+                System.err.println("An IOException is thrown when trying to send a message.");
+            }
         }
     }
 }
