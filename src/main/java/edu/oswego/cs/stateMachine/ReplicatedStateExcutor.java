@@ -1,6 +1,7 @@
-package edu.oswego.cs.game;
+package edu.oswego.cs.stateMachine;
 
 import edu.oswego.cs.client.Command;
+import edu.oswego.cs.game.Action;
 import edu.oswego.cs.raft.Raft;
 import edu.oswego.cs.raft.RaftAdministrationCommand;
 import edu.oswego.cs.raft.RaftMembershipState;
@@ -13,7 +14,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class GameStateExcutor extends Thread {
+public class ReplicatedStateExcutor extends Thread {
 
     private final List<Action> readOnlyLog;
     private final AtomicInteger lastActionConfirmed;
@@ -21,7 +22,7 @@ public class GameStateExcutor extends Thread {
     private final AtomicBoolean gameActive;
     private final Raft raft;
 
-    public GameStateExcutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft) {
+    public ReplicatedStateExcutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft) {
         this.readOnlyLog = readOnlyLog;
         this.lastActionConfirmed = lastActionConfirmed;
         this.gameActive = gameActive;
