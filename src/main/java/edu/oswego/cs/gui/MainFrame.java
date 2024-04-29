@@ -25,7 +25,7 @@ public class MainFrame extends JFrame {
 
     Dungeon dungeon;
     Floor currentFloor;
-    GameUser user;
+    public GameUser user;
 
     public MainFrame() { }
 
@@ -91,70 +91,11 @@ public class MainFrame extends JFrame {
         mapOutput = new JTextArea("Map Area", 30, 40);
         //NOTE: The font NEEDS to be a fixed-width font like Courier otherwise the map won't print right.
         mapOutput.setFont(new Font("Courier", Font.PLAIN, 12));
-        if(currentFloor != null) mapOutput.setText(currentFloor.toString());
 
-        //TODO: This is dummy data.  Use floor.toString() when debug info is cleared out
         //Smaller maps get wedged into a corner, but it looks like to reformat that we'll have to
         //adjust the toString() method itself.
-        String mapText =
-                "     ┌───┐     ┌───┐\n" +
-                "     │008│     │004│\n" +
-                "     └─ ─┘     └─ ─┘\n" +
-                "┌───┐┌─ ─┐┌───┐┌─ ─┐\n" +
-                "│009  003  000  001│\n" +
-                "└───┘└─ ─┘└─ ─┘└─ ─┘\n" +
-                "     ┌─ ─┐┌─ ─┐┌─ ─┐\n" +
-                "     │007  002  005│\n" +
-                "     └───┘└─ ─┘└───┘\n" +
-                "          ┌─ ─┐     \n" +
-                "          │006│     \n" +
-                "          └───┘";
+        if(currentFloor != null) mapOutput.setText(currentFloor.toString());
 
-        String bigMapText =
-                        "                                             ┌───┐┌───┐┌───┐                    \n" +
-                        "                                             │097  074  096│                    \n" +
-                        "                                             └───┘└─ ─┘└─ ─┘                    \n" +
-                        "                                   ┌───┐          ┌─ ─┐┌─ ─┐┌───┐               \n" +
-                        "                                   │077│          │056││075││098│               \n" +
-                        "                                   └─ ─┘          └─ ─┘└─ ─┘└─ ─┘               \n" +
-                        "                              ┌───┐┌─ ─┐┌───┐     ┌─ ─┐┌─ ─┐┌─ ─┐┌───┐          \n" +
-                        "                              │079││058  078│     │044  057  076  099│          \n" +
-                        "                              └─ ─┘└─ ─┘└───┘     └─ ─┘└─ ─┘└───┘└───┘          \n" +
-                        "               ┌───┐          ┌─ ─┐┌─ ─┐┌───┐┌───┐┌─ ─┐┌─ ─┐     ┌───┐          \n" +
-                        "               │091│          │059  046  036││030  035  045│     │082│          \n" +
-                        "               └─ ─┘          └─ ─┘└─ ─┘└─ ─┘└─ ─┘└───┘└─ ─┘     └─ ─┘          \n" +
-                        "          ┌───┐┌─ ─┐┌───┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐     ┌─ ─┐┌───┐┌─ ─┐          \n" +
-                        "          │093  070  053  069││080││037  031  024│     │062  048  061│          \n" +
-                        "          └─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘     └─ ─┘└─ ─┘└─ ─┘          \n" +
-                        "          ┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐┌───┐┌───┐\n" +
-                        "          │072  092││041││081  060  047││025  017││026  032  038  049  063  083│\n" +
-                        "          └─ ─┘└───┘└─ ─┘└───┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└───┘\n" +
-                        "┌───┐┌───┐┌─ ─┐┌───┐┌─ ─┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐     \n" +
-                        "│095  073  055  043  034  029  022  015  019││010││018  039  050  064  084│     \n" +
-                        "└───┘└───┘└─ ─┘└─ ─┘└─ ─┘└───┘└───┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└───┘└─ ─┘└─ ─┘└───┘     \n" +
-                        "          ┌─ ─┐┌─ ─┐┌─ ─┐          ┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌───┐┌─ ─┐┌─ ─┐          \n" +
-                        "          │071  054  042│          │008  012  004  011││087  065││085│          \n" +
-                        "          └─ ─┘└───┘└─ ─┘          └─ ─┘└─ ─┘└─ ─┘└───┘└───┘└─ ─┘└───┘          \n" +
-                        "          ┌─ ─┐     ┌─ ─┐┌───┐┌───┐┌─ ─┐┌─ ─┐┌─ ─┐          ┌─ ─┐               \n" +
-                        "          │094│     │023  016  009  003  000  001│          │086│               \n" +
-                        "          └───┘     └─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘└─ ─┘          └───┘               \n" +
-                        "                    ┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐┌─ ─┐                              \n" +
-                        "                    │028  021  014  007  002  005│                              \n" +
-                        "                    └───┘└─ ─┘└─ ─┘└───┘└─ ─┘└───┘                              \n" +
-                        "          ┌───┐┌───┐┌───┐┌─ ─┐┌─ ─┐     ┌─ ─┐                                   \n" +
-                        "          │088  066││051││027  020│     │006│                                   \n" +
-                        "          └───┘└─ ─┘└─ ─┘└─ ─┘└───┘     └─ ─┘                                   \n" +
-                        "          ┌───┐┌─ ─┐┌─ ─┐┌─ ─┐          ┌─ ─┐                                   \n" +
-                        "          │068  052  040  033│          │013│                                   \n" +
-                        "          └─ ─┘└─ ─┘└───┘└───┘          └───┘                                   \n" +
-                        "          ┌─ ─┐┌─ ─┐                                                            \n" +
-                        "          │090││067│                                                            \n" +
-                        "          └───┘└─ ─┘                                                            \n" +
-                        "               ┌─ ─┐                                                            \n" +
-                        "               │089│                                                            \n" +
-                        "               └───┘  ";
-
-        //mapOutput.setText(mapText);
         mapOutput.setEditable(false);
 
         JPanel mapPanel = new JPanel();     //Nother container
@@ -186,16 +127,10 @@ public class MainFrame extends JFrame {
         //TODO: Will likely need to perform an equivalent of the ".exit" command for raft
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        //I guess this sort of thing isn't recommended but might change my mind later
-//        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-//        double screenWidth = screenSize.getWidth();
-//        double screenHeight = screenSize.getHeight();
-//        setSize((int) (screenWidth / 2), (int) (screenHeight / 2));
-
         //Action listener stuff
         inputField.addActionListener(inputFieldAction);
 
-        updateRoomEnemies();
+        listRoomEnemies();
 
         //Final prep
         setResizable(false);                //Looks gross maximized otherwise
@@ -204,68 +139,60 @@ public class MainFrame extends JFrame {
         setVisible(true);                   //What it says on the tin
     }
 
-    //TODO: Will be modified to handle world events
+
     Action inputFieldAction = new AbstractAction() {
         @Override
         public void actionPerformed(ActionEvent actionEvent) {
-            Object source = actionEvent.getSource();
 
-            if(source == inputField) {
-                String inputText = inputField.getText();
-//                System.out.println(inputText);
+            String inputText = inputField.getText();
 
-                if(inputText.isEmpty()) return;
-                if(raft == null) {
-                    inputField.setText("");
-                    addMessage("Raft is not initialized yet.");
-                }
-                //TODO: I think Dave has code in his stuff to break down user actions.
-                messages.add("\nCommand attempted: " + inputText + "\n");
-                String[] chunked = inputText.split(" ");
-
-                Optional<Command> optionalCommand = Command.parse(chunked[0].toLowerCase());
-                //TODO: These should be in the enums for Raft, but I don't want to muck with that without Dave
-                if (optionalCommand.isPresent()) {
-                    Command command = optionalCommand.get();
-                    switch (command) {
-                        case CHAT:
-                            if (chunked.length == 1) {
-                                messages.add("Nothing to say!");
-                                break;
-                            }
-
-//                            String chatMessage = inputText.substring(chunked[0].length() + 1);
-                            raft.sendMessage(inputText);
-//                            messages.add("You: " + chatMessage);
-
-                            break;
-//                        case :
-//                            if (chunked.length == 1) {
-//                                messages.add("Nowhere to go!"); //TODO: List exits
-//                                break;
-//                            }
-//
-//                            char direction = chunked[1].charAt(0);
-//                            boolean success = user.changeRooms(direction);
-//
-//                            if (success) {
-//                                messages.add("Moved " + chunked[1] + ". Current room: " + user.getRoomNumber());
-//                            } else {
-//                                messages.add("No room that way!");
-//                            }
-//
-//                            updateRoomEnemies();
-//                            break;
-                        default:
-                            messages.add("Didn't understand that!");
-                    }
-                } else {
-                    messages.add("Didn't understand that!");
-                }
-
+            if(inputText.isEmpty()) return;
+            if(raft == null) {
                 inputField.setText("");
-                updateOutputBox();
+                addMessage("Raft is not initialized yet.");
             }
+
+            String[] chunked = inputText.split(" ");
+
+            Optional<Command> optionalCommand = Command.parse(chunked[0].toLowerCase());
+            //TODO: These should be in the enums for Raft, but I don't want to muck with that without Dave
+            if (optionalCommand.isPresent()) {
+                Command command = optionalCommand.get();
+                switch (command) {
+                    case CHAT:
+                        if (chunked.length == 1) {
+                            messages.add("Nothing to say!");
+                            break;
+                        }
+
+                        raft.sendMessage(inputText);
+                        break;
+
+                    case EXIT:
+                        raft.sendMessage(inputText);
+                        System.exit(0);
+                        break;
+
+                    case MOVE:
+                        if (chunked.length == 1) {
+                            messages.add("Nowhere to go!"); //TODO: List available exits
+                            break;
+                        }
+
+                        raft.sendMessage(inputText);
+
+                        break;
+
+                    default:
+                        messages.add("Didn't understand that!");
+                }
+            } else {
+                messages.add("Didn't understand that!");
+            }
+
+            inputField.setText("");
+            updateOutputBox();
+
         }
     };
 
@@ -289,11 +216,11 @@ public class MainFrame extends JFrame {
         mapOutput.setText(currentFloor.toString());
     }
 
-    public void updateRoomEnemies() {
+    public void listRoomEnemies() {
         if(user.currentRoom.entities.isEmpty()) return;
 
         for(Entity entity: user.currentRoom.entities) {
-            messages.add("Enemy in room! " + entity.name + " spawned in!");
+            addMessage("Enemy in room! " + entity.name + " spawned in!");
         }
     }
 

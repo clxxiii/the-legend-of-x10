@@ -14,7 +14,7 @@ public class App {
     private static final int DEFAULT_PORT = 26910;
 
     public static void main(String[] args) throws Exception {
-        String clientUsername = "DeveloperDave";
+        String clientUsername = "Victor";
         MainFrame mainFrame = new MainFrame();
         Raft raft = new Raft(DEFAULT_PORT, clientUsername, mainFrame);
         mainFrame.setRaft(raft);
