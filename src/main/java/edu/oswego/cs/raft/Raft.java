@@ -1,15 +1,12 @@
 package edu.oswego.cs.raft;
 
 import edu.oswego.cs.Packets.*;
-import edu.oswego.cs.client.Command;
 import edu.oswego.cs.game.Action;
-import edu.oswego.cs.game.GameStateMachine;
+import edu.oswego.cs.stateMachine.ReplicatedStateMachine;
 
 import java.io.IOException;
 import java.net.*;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +28,7 @@ public class Raft {
    private final ConcurrentLinkedQueue<Action> queue = new ConcurrentLinkedQueue<>();
    private final Lock logLock = new ReentrantLock();
    private final List<Action> log = new ArrayList<>();
-   private final GameStateMachine gsm;
+   private final ReplicatedStateMachine rsm;
    private final AtomicInteger lastActionConfirmed;
    private final AtomicBoolean gameActive = new AtomicBoolean(true);
    private volatile String userNameOfLeader;
@@ -47,7 +44,7 @@ public class Raft {
       serverSocket = new DatagramSocket(serverPort);
       raftSessionActive = false;
       lastActionConfirmed = new AtomicInteger(-1);
-      gsm = new GameStateMachine(log, lastActionConfirmed, gameActive, this);
+      rsm = new ReplicatedStateMachine(log, lastActionConfirmed, gameActive, this);
       this.clientUserName = clientUserName;
       raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log);
       isFollower = new AtomicBoolean(true);
@@ -122,7 +119,7 @@ public class Raft {
       sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState));
       startHeartBeat();
       (new RaftLogConfirmer(logConfirmerObject, sessionMap, lastActionConfirmed, gameActive, clientUserName, serverSocket, log)).start();
-      gsm.start();
+      rsm.start();
    }
 
    public void exitRaft() {
@@ -137,7 +134,7 @@ public class Raft {
       }
       keepReceiving.set(false);
       serverSocket.close();
-      gsm.stop();
+      rsm.stop();
    }
 
    public void joinRaftGroup(SocketAddress groupAddress) {
@@ -146,7 +143,7 @@ public class Raft {
          ConnectPacket connectPacket = new ConnectPacket(ConnectSubopcode.ClientHello, clientUserName, new byte[0]);
          byte[] connectHelloPacketBytes = connectPacket.packetToBytes();
          DatagramPacket packet = new DatagramPacket(connectHelloPacketBytes, connectHelloPacketBytes.length, groupAddress);
-         gsm.start();
+         rsm.start();
          (new RaftFollowerLogMaintainer(isFollower, logLock, log, lastActionConfirmed, followerLogMaintainerObject, actionMap)).start();
          serverSocket.send(packet);
       } catch (IOException e) {

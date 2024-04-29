@@ -1,15 +1,15 @@
-package edu.oswego.cs.game;
+package edu.oswego.cs.stateMachine;
 
+import edu.oswego.cs.game.Action;
 import edu.oswego.cs.raft.Raft;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class GameStateMachine {
+public class ReplicatedStateMachine {
     private final List<Action> readOnlyLog;
     private int logIndex;
     private ExecutorService gameService = Executors.newSingleThreadExecutor();
@@ -18,7 +18,7 @@ public class GameStateMachine {
     private final AtomicBoolean gameActive;
     private final Raft raft;
 
-    public GameStateMachine(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, Raft raft) {
+    public ReplicatedStateMachine(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, Raft raft) {
         this.readOnlyLog = readOnlyLog;
         this.lastActionConfirmed = lastActionConfirmed;
         this.gameActive = gameActive;
@@ -26,7 +26,7 @@ public class GameStateMachine {
     }
 
     public void start() {
-        gameService.execute(new GameStateExcutor(readOnlyLog, lastActionConfirmed, lastActionExecuted, gameActive, raft));
+        gameService.execute(new ReplicatedStateExcutor(readOnlyLog, lastActionConfirmed, lastActionExecuted, gameActive, raft));
     }
 
     public void stop() {
