@@ -2,6 +2,7 @@ package edu.oswego.cs.raft;
 
 import edu.oswego.cs.Packets.*;
 import edu.oswego.cs.game.Action;
+import edu.oswego.cs.gui.MainFrame;
 import edu.oswego.cs.stateMachine.ReplicatedStateMachine;
 
 import java.io.IOException;
@@ -39,15 +40,17 @@ public class Raft {
    private final Object followerLogMaintainerObject = new Object();
    private final AtomicBoolean isFollower;
    private final ConcurrentHashMap<Integer, Action> actionMap = new ConcurrentHashMap<>();
+   private final MainFrame mainFrame;
 
-   public Raft(int serverPort, String clientUserName) throws SocketException {
+   public Raft(int serverPort, String clientUserName, MainFrame mainFrame) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
       raftSessionActive = false;
       lastActionConfirmed = new AtomicInteger(-1);
-      rsm = new ReplicatedStateMachine(log, lastActionConfirmed, gameActive, this);
+      rsm = new ReplicatedStateMachine(log, lastActionConfirmed, gameActive, this, mainFrame, clientUserName);
       this.clientUserName = clientUserName;
       raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log);
       isFollower = new AtomicBoolean(true);
+      this.mainFrame = mainFrame;
       raftReceiver.start();
    }
 
