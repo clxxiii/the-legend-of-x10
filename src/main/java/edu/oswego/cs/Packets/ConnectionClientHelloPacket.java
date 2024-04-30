@@ -24,7 +24,7 @@ public class ConnectionClientHelloPacket extends ConnectPacket {
         byte[] keyBytes = publicKey.getEncoded();
         byte[] usernameBytes = this.username.getBytes(StandardCharsets.UTF_8);
         int stringPaddingSize = 1;
-        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length + stringPaddingSize + keyBytes.length + stringPaddingSize;
+        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length + stringPaddingSize + keyBytes.length;
 
         ByteBuffer buffer = ByteBuffer.allocate(bufferLength);
         buffer.putShort(this.opcode.code);
@@ -32,8 +32,6 @@ public class ConnectionClientHelloPacket extends ConnectPacket {
         buffer.put(usernameBytes);
         buffer.put((byte) 0x00);
         buffer.put(keyBytes);
-        buffer.put((byte) 0x00);
-        buffer.put(data);
 
         buffer.flip();
         return buffer.array();
@@ -55,11 +53,6 @@ public class ConnectionClientHelloPacket extends ConnectPacket {
         buffer.limit(bufferLimit);
         // get the null character
         buffer.get();
-
-        buffer.mark();
-        while (buffer.hasRemaining() && buffer.get() != 0x00);
-        buffer.limit(buffer.position() - 1);
-        buffer.reset();
         byte[] keyBytes = new byte[buffer.limit() - buffer.position()];
         buffer.get(keyBytes);
         PublicKey key = null;
@@ -70,14 +63,6 @@ public class ConnectionClientHelloPacket extends ConnectPacket {
         } catch (InvalidKeySpecException e) {
             System.err.println("Invalid key spec.");
         }
-
-        // allow the buffer to continue past the string
-        buffer.limit(bufferLimit);
-        // get the null character
-        buffer.get();
-
-        byte[] data = new byte[buffer.remaining()];
-        buffer.get(data);
         return new ConnectionClientHelloPacket(username, key);
     }
 }

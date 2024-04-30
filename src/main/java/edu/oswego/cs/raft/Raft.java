@@ -85,7 +85,7 @@ public class Raft {
                // TODO: send to socket address
                if (value.getMembershipState() == RaftMembershipState.FOLLOWER) {
                   SocketAddress socketAddress = value.getSocketAddress();
-                  sendHeartBeatPacket(messageBytes, socketAddress);
+                  sendPacket(messageBytes, socketAddress);
                }
             });
 
@@ -178,12 +178,7 @@ public class Raft {
             ReqCommandPacket reqCommandPacket = new ReqCommandPacket(clientUserName, command);
             byte[] packetBytes = reqCommandPacket.packetToBytes();
             if (getLeaderAddr() != null) {
-               DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, getLeaderAddr());
-               try {
-                  serverSocket.send(datagramPacket);
-               } catch (IOException e) {
-                  System.err.println("An IOException was thrown while trying to send a server command request.");
-               }
+               sendPacket(packetBytes, getLeaderAddr());
             }
          }
       }
@@ -268,7 +263,7 @@ public class Raft {
       return log.size() - 1;
    }
 
-   public void sendHeartBeatPacket(byte[] bytes, SocketAddress socketAddress) {
+   public void sendPacket(byte[] bytes, SocketAddress socketAddress) {
       byte[] encryptedBytes = encryption.encryptMessageWithSecretKey(bytes);
       if (encryptedBytes != null) {
          try {
