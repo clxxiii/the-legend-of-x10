@@ -23,29 +23,13 @@ public class MainFrame extends JFrame {
     int lastMessageAccessed = -1;
     private Raft raft;
 
-    Dungeon dungeon;
-    Floor currentFloor;
-    public GameUser user;
-
     public MainFrame() { }
-
-    public void setDungeon(Dungeon dungeon) {
-        this.dungeon = dungeon;
-    }
-
-    public void setCurrentFloor(Floor floor) {
-        this.currentFloor = floor;
-    }
-
-    public void setUser(GameUser user) {
-        this.user = user;
-    }
 
     public void setRaft(Raft raft) {
         this.raft = raft;
     }
 
-    public void initialize() {
+    public void initialize(String username, String roomNumber, Floor currentFloor) {
         setTitle("The Legend of X10");
 
 
@@ -71,8 +55,8 @@ public class MainFrame extends JFrame {
         outputText.setLineWrap(true);
         outputText.setEditable(false);
 
-        messages.add("Welcome to the dungeon, " + user.username + "!");
-        messages.add("Current room: " + user.getRoomNumber());
+        messages.add("Welcome to the dungeon, " + username + "!");
+        messages.add("Current room: " + roomNumber + "!");
 
         updateOutputBox();
 
@@ -130,8 +114,6 @@ public class MainFrame extends JFrame {
         //Action listener stuff
         inputField.addActionListener(inputFieldAction);
 
-        listRoomEnemies();
-
         //Final prep
         setResizable(false);                //Looks gross maximized otherwise
         pack();                             //Packs everything together to fit whatever size the components are
@@ -169,7 +151,7 @@ public class MainFrame extends JFrame {
                         break;
 
                     case EXIT:
-                        raft.sendMessage(inputText);
+                        raft.exitRaft();
                         System.exit(0);
                         break;
 
@@ -212,11 +194,11 @@ public class MainFrame extends JFrame {
     /**
      * Call this when the floor changes so we have an updated map showing in the panel.
      */
-    public void updateMapOutput() {
-        mapOutput.setText(currentFloor.toString());
+    public void updateMapOutput(Floor floor) {
+        mapOutput.setText(floor.toString());
     }
 
-    public void listRoomEnemies() {
+    public void listRoomEnemies(GameUser user) {
         if(user.currentRoom.entities.isEmpty()) return;
 
         for(Entity entity: user.currentRoom.entities) {

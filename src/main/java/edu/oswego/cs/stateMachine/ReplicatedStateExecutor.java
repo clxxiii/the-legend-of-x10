@@ -4,7 +4,9 @@ import edu.oswego.cs.client.Command;
 import edu.oswego.cs.dungeon.Dungeon;
 import edu.oswego.cs.dungeon.Floor;
 import edu.oswego.cs.dungeon.GameUser;
+import edu.oswego.cs.dungeon.Room;
 import edu.oswego.cs.game.Action;
+import edu.oswego.cs.game.GameCommandOutput;
 import edu.oswego.cs.gui.MainFrame;
 import edu.oswego.cs.raft.Raft;
 import edu.oswego.cs.raft.RaftAdministrationCommand;
@@ -14,6 +16,7 @@ import edu.oswego.cs.raft.Session;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,6 +30,10 @@ public class ReplicatedStateExecutor extends Thread {
     private final Raft raft;
     private final MainFrame mainFrame;
     private final String clientUsername;
+    private final Dungeon dungeon;
+    private final Floor currentFloor;
+    private final Floor firstFloor;
+    private final GameUser user;
 
     public ReplicatedStateExecutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft, MainFrame mainFrame, String clientUsername) {
         this.readOnlyLog = readOnlyLog;
@@ -37,14 +44,11 @@ public class ReplicatedStateExecutor extends Thread {
         this.mainFrame = mainFrame;
         this.clientUsername = clientUsername;
 
-        //TODO: This stuff will get ripped apart
-        Dungeon dungeon = new Dungeon(123098123891l);
-        mainFrame.setDungeon(dungeon);
-        Floor currentFloor = dungeon.makeFloor();
-        mainFrame.setCurrentFloor(currentFloor);
-        GameUser user = new GameUser(currentFloor.getEntrance(), clientUsername);
-        mainFrame.setUser(user);
-        mainFrame.initialize();
+        this.dungeon = new Dungeon(123098123891l);
+        this.firstFloor = currentFloor = dungeon.makeFloor();
+        user = new GameUser(currentFloor.getEntrance(), clientUsername);
+        this.dungeon.addUser(user);
+        mainFrame.initialize(user.username, user.getRoomNumber(), currentFloor);
     }
 
     @Override
@@ -67,21 +71,13 @@ public class ReplicatedStateExecutor extends Thread {
                             case CHAT:
                                 if (brokenDownCommand.length > 1) mainFrame.addMessage(action.getUserName() + ": " + brokenDownCommand[1]);
                                 break;
-                            case EXIT:
-                                raft.exitRaft();
-                                break;
                             case MOVE:
-                                char direction = brokenDownCommand[1].charAt(0);
-                                boolean success = mainFrame.user.changeRooms(direction);
+                                GameCommandOutput output = dungeon.move(action.getUserName(), brokenDownCommand[1].charAt(0));
 
-                                //TODO: Move the user, etc. into ReplicatedStateExecutor and not the gui
-                                if (success) {
-                                    mainFrame.addMessage("Moved " + brokenDownCommand[1] + ". Current room: " + mainFrame.user.getRoomNumber());
-                                } else {
-                                    mainFrame.addMessage("No room that way!");
+                                if (output.successful && output.username.equals(clientUsername)) {
+                                    mainFrame.addMessage(output.textOutput);
+                                    mainFrame.listRoomEnemies(user);
                                 }
-
-                                mainFrame.listRoomEnemies();
                         }
                     //vvvv  NO TOUCH  vvvvv
                     } else {
@@ -90,7 +86,8 @@ public class ReplicatedStateExecutor extends Thread {
                             RaftAdministrationCommand raftAdministrationCommand = optionalRaftAdministrationCommand.get();
                             switch (raftAdministrationCommand) {
                                 case ADD_MEMBER:
-                                    handleAddMember(brokenDownCommand[1]);
+                                    String username = handleAddMember(brokenDownCommand[1]);
+                                    dungeon.addUser(new GameUser(firstFloor.getEntrance(), username));
                                     break;
                             }
                         }
@@ -102,7 +99,7 @@ public class ReplicatedStateExecutor extends Thread {
         }
     }
 
-    public void handleAddMember(String commandArgs) {
+    public String handleAddMember(String commandArgs) {
         String[] args = commandArgs.split(" ");
         int numExpectedArgs = 3;
         if (args.length == numExpectedArgs) {
@@ -110,8 +107,11 @@ public class ReplicatedStateExecutor extends Thread {
             if (addr.length == 2) {
                 SocketAddress socketAddress = new InetSocketAddress(addr[0], Integer.parseInt(addr[1]));
                 raft.addSession(args[0], new Session(socketAddress, Long.parseLong(args[1]), RaftMembershipState.FOLLOWER));
-                System.out.println(args[0]);
+                return args[0];
             }
         }
+
+        return null;
     }
+
 }

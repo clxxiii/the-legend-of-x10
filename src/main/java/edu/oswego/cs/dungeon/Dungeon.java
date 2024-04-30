@@ -1,31 +1,81 @@
 package edu.oswego.cs.dungeon;
 
+import edu.oswego.cs.game.GameCommandOutput;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Dungeon {
-  private ArrayList<Floor> floors;
-  private long seed;
+    private ArrayList<Floor> floors;
+    private HashMap<String, GameUser> currentUsers;
+    private long seed;
 
-  public Dungeon(long seed) {
-    floors = new ArrayList<>();
-    this.seed = seed;
-  }
+    public void addUser(GameUser gameUser) {
+        if(currentUsers == null) currentUsers = new HashMap<>();
+        currentUsers.put(gameUser.username, gameUser);
+    }
 
-  public Floor makeFloor() {
-    FloorGenerator generator = new FloorGenerator(seed);
-    Floor newFloor = generator.generate(floors.size() + 1);
-    floors.add(newFloor);
-    updateSeed();
-    return newFloor;
-  }
+    public Dungeon(long seed) {
+        floors = new ArrayList<>();
+        this.seed = seed;
+    }
 
-  private void updateSeed() {
-    seed ^= seed << 13;
-    seed ^= seed >>> 7;
-    seed ^= seed << 17;
-  }
+    public Floor makeFloor() {
+        FloorGenerator generator = new FloorGenerator(seed);
+        Floor newFloor = generator.generate(floors.size() + 1);
+        floors.add(newFloor);
+        updateSeed();
+        return newFloor;
+    }
 
-  public static void main(String[] args) {
-    System.out.println(new Dungeon(123098123891l).makeFloor().toString());
-  }
+    private void updateSeed() {
+        seed ^= seed << 13;
+        seed ^= seed >>> 7;
+        seed ^= seed << 17;
+    }
+
+    public GameCommandOutput move(String username, char direction) {
+        GameCommandOutput output = new GameCommandOutput();
+        output.successful = false;
+        output.username = username;
+        output.textOutput = "Can't move that way!";
+
+        GameUser gameUser = currentUsers.get(username);
+        char directionCaps = Character.toUpperCase(direction);
+
+        switch(directionCaps) {
+            case 'N':
+                if(gameUser.currentRoom.northExit == null) break;
+
+                gameUser.currentRoom = gameUser.currentRoom.northExit;
+                output.successful = true;
+                break;
+            case 'S':
+                if(gameUser.currentRoom.southExit == null) break;
+
+                gameUser.currentRoom = gameUser.currentRoom.southExit;
+                output.successful = true;
+                break;
+            case 'E':
+                if(gameUser.currentRoom.eastExit == null) break;
+
+                gameUser.currentRoom = gameUser.currentRoom.eastExit;
+                output.successful = true;
+                break;
+            case 'W':
+                if(gameUser.currentRoom.westExit == null) break;
+
+                gameUser.currentRoom = gameUser.currentRoom.westExit;
+                output.successful = true;
+                break;
+            default:
+                break;
+        }
+
+        if(output.successful) {
+            output.textOutput = "Moved " + direction + ". Current room: " + gameUser.currentRoom.prettyRoomNumber() + ".";
+        }
+
+        return output;
+    }
 }
