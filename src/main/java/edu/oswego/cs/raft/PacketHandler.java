@@ -143,7 +143,7 @@ public class PacketHandler extends Thread {
             if (leaderAddr != null) {
                 ConnectionRedirectPacket connectionRedirectPacket = new ConnectionRedirectPacket(socketAddr, connectPacket.username, clientHelloPacket.publicKey);
                 byte[] packetBytes = connectionRedirectPacket.packetToBytes();
-                sendPacket(packetBytes, socketAddr);
+                sendPacket(packetBytes, leaderAddr);
             }
         }
     }
@@ -198,7 +198,8 @@ public class PacketHandler extends Thread {
             }
         } else if (raft.raftMembershipState == RaftMembershipState.LEADER) {
             // send a server hello
-            handleClientHello(packet, packet.originalAddress);
+            ConnectionClientHelloPacket clientHelloPacket = new ConnectionClientHelloPacket(packet.username, packet.publicKey);
+            handleClientHello(clientHelloPacket, packet.originalAddress);
         }
     }
 
