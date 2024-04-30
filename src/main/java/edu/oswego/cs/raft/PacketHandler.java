@@ -66,10 +66,13 @@ public class PacketHandler extends Thread {
                     }
                 }
             } else {
-                byte[] decryptedBytes = encryption.decryptMessageWithSecretKey(packetData);
+                packetBuffer.rewind();
+                byte[] encryptedBytes = new byte[packetBuffer.limit()];
+                packetBuffer.get(encryptedBytes);
+                byte[] decryptedBytes = encryption.decryptMessageWithSecretKey(encryptedBytes);
                 if (decryptedBytes == null) return;
-                packetBuffer.reset();
-                packetBuffer.limit(datagramPacket.getLength());
+                packetBuffer.rewind();
+                packetBuffer.limit(decryptedBytes.length);
                 packetBuffer.put(decryptedBytes);
                 packet = Packet.bytesToPacket(packetBuffer);
                 if (packet != null) {
@@ -129,7 +132,11 @@ public class PacketHandler extends Thread {
             if (successfulAdd) {
                 ConnectPacket responsePacket = new ConnectionServerHelloPacket(serverUsername, encryption.encryptSecretKeyWithPublicKey(clientHelloPacket.publicKey));
                 byte[] packetBytes = responsePacket.packetToBytes();
-                sendPacket(packetBytes, socketAddr);
+                try {
+                    serverSocket.send(new DatagramPacket(packetBytes, packetBytes.length, socketAddr));
+                } catch (IOException e) {
+                    System.err.println("An IOException is thrown when trying to send a message.");
+                }
             }
         } else {
             SocketAddress leaderAddr = raft.getLeaderAddr();
@@ -156,7 +163,6 @@ public class PacketHandler extends Thread {
 
     public void handleClientKey(ConnectPacket connectPacket, SocketAddress socketAddr) {
         if (raft.raftMembershipState == RaftMembershipState.LEADER) {
-            try {
                 if (raft.userIsPending(connectPacket.username)) {
                     // add user to log
                     String command = RaftAdministrationCommand.ADD_MEMBER.name + " " + connectPacket.username + " " + System.nanoTime() + " " + socketAddr.toString().replace("/", "");
@@ -165,8 +171,7 @@ public class PacketHandler extends Thread {
                 // tell client to log that the raft session is active
                 ConnectPacket responsePacket = new ConnectPacket(ConnectSubopcode.Log, serverUsername, new byte[0]);
                 byte[] packetBytes = responsePacket.packetToBytes();
-                DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, socketAddr);
-                serverSocket.send(datagramPacket);
+                sendPacket(packetBytes, socketAddr);
 
                 // send log
                 int logLength = raft.getLogLength();
@@ -179,9 +184,6 @@ public class PacketHandler extends Thread {
                         sendPacket(logPacketBytes, socketAddr);
                     }, 5L * i, TimeUnit.MILLISECONDS);
                 }
-            } catch (IOException e) {
-                System.err.println("Unable to send datagram packet in method handleClientKey");
-            }
         }
     }
 
