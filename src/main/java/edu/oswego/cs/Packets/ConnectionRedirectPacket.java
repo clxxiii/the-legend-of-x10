@@ -4,22 +4,30 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 
 public class ConnectionRedirectPacket extends ConnectPacket {
 
     public final SocketAddress originalAddress;
+    public final PublicKey publicKey;
 
-    public ConnectionRedirectPacket(SocketAddress originalAddress, String username, byte[] data) {
-        super(ConnectSubopcode.Redirect, username, data);
+    public ConnectionRedirectPacket(SocketAddress originalAddress, String username, PublicKey publicKey) {
+        super(ConnectSubopcode.Redirect, username, new byte[0]);
         this.originalAddress = originalAddress;
+        this.publicKey = publicKey;
     }
 
     @Override
     public byte[] packetToBytes() {
+        byte[] keyBytes = publicKey.getEncoded();
         byte[] addrBytes = originalAddress.toString().replace("/", "").getBytes(StandardCharsets.UTF_8);
         byte[] usernameBytes = this.username.getBytes(StandardCharsets.UTF_8);
         int stringPaddingSize = 1;
-        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length + stringPaddingSize + addrBytes.length + stringPaddingSize;
+        int bufferLength  = 2 * (Short.BYTES) + data.length + usernameBytes.length + stringPaddingSize + addrBytes.length + stringPaddingSize + keyBytes.length;
 
         ByteBuffer buffer = ByteBuffer.allocate(bufferLength);
         buffer.putShort(this.opcode.code);
@@ -28,7 +36,7 @@ public class ConnectionRedirectPacket extends ConnectPacket {
         buffer.put((byte) 0x00);
         buffer.put(addrBytes);
         buffer.put((byte) 0x00);
-        buffer.put(data);
+        buffer.put(keyBytes);
 
         buffer.flip();
         return buffer.array();
@@ -66,8 +74,16 @@ public class ConnectionRedirectPacket extends ConnectPacket {
         // get the null character
         buffer.get();
 
-        byte[] data = new byte[buffer.remaining()];
-        buffer.get(data);
-        return new ConnectionRedirectPacket(new InetSocketAddress(addrSplit[0], Integer.parseInt(addrSplit[1])), username, data);
+        byte[] keyBytes = new byte[buffer.remaining()];
+        buffer.get(keyBytes);
+        PublicKey key = null;
+        try {
+            key = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyBytes));
+        } catch (NoSuchAlgorithmException e) {
+            System.err.println("RSA algorithm does not exist.");
+        } catch (InvalidKeySpecException e) {
+            System.err.println("Invalid key spec.");
+        }
+        return new ConnectionRedirectPacket(new InetSocketAddress(addrSplit[0], Integer.parseInt(addrSplit[1])), username, key);
     }
 }

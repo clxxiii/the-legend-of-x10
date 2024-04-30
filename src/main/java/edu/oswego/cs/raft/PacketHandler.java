@@ -141,7 +141,7 @@ public class PacketHandler extends Thread {
         } else {
             SocketAddress leaderAddr = raft.getLeaderAddr();
             if (leaderAddr != null) {
-                ConnectionRedirectPacket connectionRedirectPacket = new ConnectionRedirectPacket(socketAddr, connectPacket.username, connectPacket.data);
+                ConnectionRedirectPacket connectionRedirectPacket = new ConnectionRedirectPacket(socketAddr, connectPacket.username, clientHelloPacket.publicKey);
                 byte[] packetBytes = connectionRedirectPacket.packetToBytes();
                 sendPacket(packetBytes, socketAddr);
             }
