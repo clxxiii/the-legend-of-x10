@@ -23,6 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Raft {
    
    private final Timer heartBeatTimer = new Timer();
+   private final Timer timeoutTimer = new Timer();
    private final ConcurrentHashMap<String, Session> sessionMap = new ConcurrentHashMap<>();
    private final DatagramSocket serverSocket;
    public volatile RaftMembershipState raftMembershipState;
@@ -82,8 +83,8 @@ public class Raft {
             }
 
             sessionMap.forEachValue(Long.MAX_VALUE, (value) -> {
-               // TODO: send to socket address
-               if (value.getMembershipState() == RaftMembershipState.FOLLOWER) {
+               // send to socket address
+               if (value.getMembershipState() == RaftMembershipState.FOLLOWER && !value.getTimedOut()) {
                   SocketAddress socketAddress = value.getSocketAddress();
                   sendPacket(messageBytes, socketAddress);
                }
@@ -103,10 +104,35 @@ public class Raft {
       heartBeatTimer.cancel();
    }
 
+   public void startTimeoutTimer() {
+      TimerTask task = new TimerTask() {
+         @Override
+         public void run() {
+            sessionMap.forEach(1, (key, value) -> {
+               if (value.getMembershipState() == RaftMembershipState.FOLLOWER && !value.getTimedOut()) {
+                  long nanoTime = System.nanoTime();
+                  long disconnectThreshold = 600_000_000L;
+                  long timeDifference = nanoTime - value.getLMRSTINT();
+                  if (timeDifference > disconnectThreshold) {
+                     value.setTimedOut(true);
+                  }
+               }
+            });
+         }
+      };
+      long periodInMS = 300L;
+      timeoutTimer.schedule(task, 0, periodInMS);
+   }
+
+   public void stopTimeout() {
+      timeoutTimer.cancel();
+   }
+
    public void addSession(String username, Session session) {
       // only add a user if they don't exist in the map
       Session userSession = sessionMap.putIfAbsent(username, session);
       if (userSession != null && userSession.getMembershipState() == RaftMembershipState.PENDING_FOLLOWER) {
+         userSession.setLMRSTINT(System.nanoTime());
          userSession.setMembershipState(RaftMembershipState.PENDING_FOLLOWER, RaftMembershipState.FOLLOWER);
       }
    }
@@ -120,12 +146,14 @@ public class Raft {
       queue.add(new Action(userNameOfLeader, RaftAdministrationCommand.ADD_MEMBER.name + " " + userNameOfLeader + " " + System.nanoTime() + " " + serverSocket.getLocalAddress().toString().replace("/", "")));
       sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState));
       startHeartBeat();
+      startTimeoutTimer();
       (new RaftLogConfirmer(logConfirmerObject, sessionMap, lastActionConfirmed, gameActive, clientUserName, serverSocket, log)).start();
       rsm.start();
    }
 
    public void exitRaft() {
       stopHeartBeat();
+      stopTimeout();
       gameActive.set(false);
       synchronized (logConfirmerObject) {
          logConfirmerObject.notify();
