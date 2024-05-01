@@ -42,7 +42,7 @@ public class FloorGenerator {
     map.put("0,0", startingRoom);
     leaves.add(startingRoom);
 
-    while (!leaves.isEmpty() && roomsToMake > 2) {
+    while (roomsToMake > 1) {
       makeBranches();
     }
 
@@ -72,6 +72,7 @@ public class FloorGenerator {
       makeRoom(ExitEnum.WEST, current);
       connected = true;
     }
+
     if (!connected) {
       makeRoom(ExitEnum.random(rand), current);
     }
@@ -107,7 +108,12 @@ public class FloorGenerator {
       return;
     }
 
-    Room room = roomGen.generate();
+    Room room;
+    if (roomsToMake == 2) {
+      room = roomGen.generateBossRoom();
+    } else {
+      room = roomGen.generate();
+    }
     room.setCoordinates(newX, newY);
     map.put(newX + "," + newY, room);
     leaves.add(room);
