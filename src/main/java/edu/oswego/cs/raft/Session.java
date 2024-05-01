@@ -39,8 +39,14 @@ public class Session {
         return timedOut.get();
     }
 
+    public void setTimedOut(boolean timedOut) {
+        this.timedOut.set(timedOut);
+    }
+
     public void setLMRSTINT(long nanoTime) {
-        LMRSTINT.set(nanoTime);
+        while (nanoTime > LMRSTINT.get()) {
+            LMRSTINT.set(nanoTime);
+        }
     }
 
     public int getGreatestActionConfirmed() {

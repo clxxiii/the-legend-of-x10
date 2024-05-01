@@ -54,6 +54,9 @@ public class PacketHandler extends Thread {
         try {
             Packet packet = Packet.bytesToPacket(packetBuffer);
             if (packet != null) {
+                if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+                    raft.updateSessionTimeStamp(packet.username, socketAddress);
+                }
                 Opcode opcode = packet.opcode;
                 if (opcode == Opcode.Connect) {
                     ConnectPacket connectPacket = (ConnectPacket) packet;
@@ -76,6 +79,10 @@ public class PacketHandler extends Thread {
                 packetBuffer.put(decryptedBytes);
                 packet = Packet.bytesToPacket(packetBuffer);
                 if (packet != null) {
+                    // update last message received time
+                    if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+                        raft.updateSessionTimeStamp(packet.username, socketAddress);
+                    }
                     Opcode opcode = packet.opcode;
                     switch (opcode) {
                         case Connect:
@@ -311,11 +318,8 @@ public class PacketHandler extends Thread {
 
     public void handleAckPacket(Packet packet, SocketAddress socketAddr) {
         AckPacket ackPacket = (AckPacket) packet;
-        if (raft.raftMembershipState == RaftMembershipState.LEADER) {
-            // update last message received
-            raft.updateSessionTimeStamp(packet.username, socketAddr);
-//            System.out.println("Ack received from Raft Follower.");
-        }
+        System.out.println("ACKED");
+        System.out.println(ackPacket.username);
     }
 
     public void sendPacket(byte[] bytes, SocketAddress socketAddress) {

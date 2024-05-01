@@ -27,7 +27,7 @@ public class RaftCommitSender extends Thread {
             @Override
             public void accept(Session session) {
                 try {
-                    if (session.getMembershipState() == RaftMembershipState.FOLLOWER) {
+                    if (session.getMembershipState() == RaftMembershipState.FOLLOWER && !session.getTimedOut()) {
                         DatagramPacket datagramPacket = new DatagramPacket(packetBytes, packetBytes.length, session.getSocketAddress());
                         socket.send(datagramPacket);
                     }

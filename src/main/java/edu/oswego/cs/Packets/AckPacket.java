@@ -24,7 +24,7 @@ public class AckPacket extends Packet{
 
     public static AckPacket bytesToPacket(ByteBuffer buffer) {
         byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
-        buffer.put(usernameBytes);
+        buffer.get(usernameBytes);
         return new AckPacket(new String(usernameBytes, StandardCharsets.UTF_8));
     }
 }
