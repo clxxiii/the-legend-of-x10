@@ -6,7 +6,8 @@ import java.util.Optional;
 public enum Command {
     EXIT(".exit", ".leave", ".quit"),
     CHAT(".chat"),
-    MOVE(".move");
+    MOVE(".move"),
+    ATTACK(".fight", ".attack");
 
 
     public final String[] names;
