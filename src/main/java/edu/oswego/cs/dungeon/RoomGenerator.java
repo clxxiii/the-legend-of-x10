@@ -37,6 +37,19 @@ public class RoomGenerator {
     return room;
   }
 
+  protected BossRoom generateBossRoom() {
+    BossRoom room = new BossRoom();
+    room.roomNumber = createdRooms++;
+
+    Entity boss = entityWheel.spinWheelAndMake();
+    boss.setHp(boss.getHp() * 2);
+
+    room.addEntity(boss);
+    room.boss = boss;
+
+    return room;
+  }
+
   /**
    * Returns the probability of a certain amount of items being generated in a
    * room.
