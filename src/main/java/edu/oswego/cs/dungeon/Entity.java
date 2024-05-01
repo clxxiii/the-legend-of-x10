@@ -1,7 +1,5 @@
 package edu.oswego.cs.dungeon;
 
-import java.io.Serializable;
-
 public class Entity extends Spawnable implements Fightable {
   public String name;
   private int hp;
@@ -42,11 +40,6 @@ public class Entity extends Spawnable implements Fightable {
     }
 
     return hp;
-  }
-
-  @Override
-  public void attack(String target) {
-
   }
 
 }

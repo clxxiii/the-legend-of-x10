@@ -18,7 +18,6 @@ public class GameUser implements Fightable{
      */
     public ArrayList<Item> inventory;
 
-    //TODO: Consider making this atomic
     /**
      * Health of the player.
      */
@@ -29,6 +28,9 @@ public class GameUser implements Fightable{
      */
     private int attackPower = 20;
 
+    public int getAttackPower() {
+        return attackPower;
+    }
 
     public GameUser(Room currentRoom, String username) {
         this.currentRoom = currentRoom;
@@ -66,13 +68,5 @@ public class GameUser implements Fightable{
 
         return hp;
     }
-
-    @Override
-    public void attack(String target) {
-
-    }
-
-
-
 
 }
