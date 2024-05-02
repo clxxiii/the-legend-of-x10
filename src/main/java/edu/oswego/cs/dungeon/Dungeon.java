@@ -4,6 +4,7 @@ import edu.oswego.cs.game.GameCommandOutput;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 
 public class Dungeon {
@@ -102,8 +103,27 @@ public class Dungeon {
             return output;
         }
 
+        List<Entity> entityList = gameUser.currentRoom.entities;
         Entity entity = null;
+        for (int i = 0; i < entityList.size(); i++) {
+            if (entityList.get(i).name.equalsIgnoreCase(target)) {
+                entity = entityList.get(i);
+                break;
+            }
+        }
 
+        if (entity == null) {
+            output.textOutput = "Specified entity is not in the room!";
+            return output;
+        }
+
+        entity.attacked(gameUser.getAttackPower());
+        output.successful = true;
+        if (entity.isDead()) {
+            output.textOutput = "You hit and killed " + entity.name + "!";
+        } else {
+            output.textOutput = "You hit " + entity.name + "! It has " + entity.getHp() + " HP remaining.";
+        }
         return output;
     }
 }

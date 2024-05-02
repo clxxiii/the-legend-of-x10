@@ -27,7 +27,7 @@ public class Entity extends Spawnable implements Fightable {
   }
 
   /**
-   * Deduct HP from the user.
+   * Deduct HP from the entity.
    * @param damage Amount of HP to deduct.
    * @return HP remaining.
    */
