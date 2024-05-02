@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.Random;
 
 public class FloorGenerator {
-  private long seed;
   private final Random rand;
   private RoomGenerator roomGen;
 
@@ -18,9 +17,8 @@ public class FloorGenerator {
   private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
 
-  public FloorGenerator(long seed) {
-    this.seed = seed;
-    rand = new Random(this.seed);
+  public FloorGenerator(Random rand) {
+    this.rand = rand;
   }
 
   public Floor generate(int floorNum) {
