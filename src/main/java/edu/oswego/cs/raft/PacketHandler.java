@@ -54,9 +54,7 @@ public class PacketHandler extends Thread {
         try {
             Packet packet = Packet.bytesToPacket(packetBuffer);
             if (packet != null) {
-                if (raft.raftMembershipState == RaftMembershipState.LEADER) {
-                    raft.updateSessionTimeStamp(packet.username, socketAddress);
-                }
+                raft.updateSessionTimeStamp(packet.username, socketAddress);
                 Opcode opcode = packet.opcode;
                 if (opcode == Opcode.Connect) {
                     ConnectPacket connectPacket = (ConnectPacket) packet;
@@ -80,9 +78,7 @@ public class PacketHandler extends Thread {
                 packet = Packet.bytesToPacket(packetBuffer);
                 if (packet != null) {
                     // update last message received time
-                    if (raft.raftMembershipState == RaftMembershipState.LEADER) {
-                        raft.updateSessionTimeStamp(packet.username, socketAddress);
-                    }
+                    raft.updateSessionTimeStamp(packet.username, socketAddress);
                     Opcode opcode = packet.opcode;
                     switch (opcode) {
                         case Connect:
@@ -134,7 +130,7 @@ public class PacketHandler extends Thread {
 
     public void handleClientHello(ConnectPacket connectPacket, SocketAddress socketAddr) {
         ConnectionClientHelloPacket clientHelloPacket = (ConnectionClientHelloPacket) connectPacket;
-        if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+        if (raft.raftMembershipState.get() == RaftMembershipState.LEADER) {
             boolean successfulAdd = raft.addUser(connectPacket.username, socketAddr);
             if (successfulAdd) {
                 ConnectPacket responsePacket = new ConnectionServerHelloPacket(serverUsername, encryption.encryptSecretKeyWithPublicKey(clientHelloPacket.publicKey));
@@ -169,7 +165,7 @@ public class PacketHandler extends Thread {
     }
 
     public void handleClientKey(ConnectPacket connectPacket, SocketAddress socketAddr) {
-        if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+        if (raft.raftMembershipState.get() == RaftMembershipState.LEADER) {
                 if (raft.userIsPending(connectPacket.username)) {
                     // add user to log
                     String command = RaftAdministrationCommand.ADD_MEMBER.name + " " + connectPacket.username + " " + System.nanoTime() + " " + socketAddr.toString().replace("/", "");
@@ -184,7 +180,7 @@ public class PacketHandler extends Thread {
                 int logLength = raft.getLogLength();
                 for (int i = 0; i < logLength; i++) {
                     Action action = raft.getLogIndex(i);
-                    LogCommandPacket logCommandPacket = new LogCommandPacket(action.getUserName(), i, action.getCommand());
+                    LogCommandPacket logCommandPacket = new LogCommandPacket(raft.getClientUserName(), i, action.getUserName(), action.getCommand());
                     byte[] logPacketBytes = logCommandPacket.packetToBytes();
                     // schedule these log command sends
                     scheduledExecutorService.schedule(() -> {
@@ -196,14 +192,14 @@ public class PacketHandler extends Thread {
 
     public void handleClientRedirect(ConnectPacket connectPacket) {
         ConnectionRedirectPacket packet = (ConnectionRedirectPacket) connectPacket;
-        if (raft.raftMembershipState == RaftMembershipState.FOLLOWER) {
+        if (raft.raftMembershipState.get() == RaftMembershipState.FOLLOWER) {
             // send to leader
             SocketAddress hostAddr = raft.getLeaderAddr();
             if (hostAddr != null) {
                 byte[] packetBytes = packet.packetToBytes();
                 sendPacket(packetBytes, hostAddr);
             }
-        } else if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+        } else if (raft.raftMembershipState.get() == RaftMembershipState.LEADER) {
             // send a server hello
             ConnectionClientHelloPacket clientHelloPacket = new ConnectionClientHelloPacket(packet.username, packet.publicKey);
             handleClientHello(clientHelloPacket, packet.originalAddress);
@@ -213,6 +209,7 @@ public class PacketHandler extends Thread {
     public void handleConnectLog(ConnectPacket connectPacket, SocketAddress socketAddr) {
         if (raft.addrIsLeader(socketAddr) && !raft.raftSessionActive) {
             raft.raftSessionActive = true;
+            raft.startElectionTimeout();
         }
     }
 
@@ -242,7 +239,7 @@ public class PacketHandler extends Thread {
         }
         for (int i = logIndex; i < readOnlyLog.size(); i++) {
             Action action = readOnlyLog.get(i);
-            LogCommandPacket logCommandPacket = new LogCommandPacket(action.getUserName(), i, action.getCommand());
+            LogCommandPacket logCommandPacket = new LogCommandPacket(raft.getClientUserName(), i, action.getUserName(), action.getCommand());
             byte[] packetBytes = logCommandPacket.packetToBytes();
             // schedule these log command sends
             scheduledExecutorService.schedule(() -> {
@@ -253,16 +250,16 @@ public class PacketHandler extends Thread {
 
     public void handleRequestCommandPacket(CommandPacket commandPacket, SocketAddress socketAddress) {
         ReqCommandPacket reqCommandPacket = (ReqCommandPacket) commandPacket;
-        if (raft.raftMembershipState == RaftMembershipState.LEADER) {
+        if (raft.raftMembershipState.get() == RaftMembershipState.LEADER) {
             raft.addActionToQueue(new Action(reqCommandPacket.username, reqCommandPacket.command));
         }
     }
 
     public void handleLogCommandPacket(CommandPacket commandPacket, SocketAddress socketAddress) {
         LogCommandPacket logCommandPacket = (LogCommandPacket) commandPacket;
-        if (raft.raftMembershipState == RaftMembershipState.FOLLOWER) {
+        if (raft.raftMembershipState.get() == RaftMembershipState.FOLLOWER) {
             // commit command
-            actionMap.putIfAbsent(logCommandPacket.actionNum, new Action(logCommandPacket.username, logCommandPacket.command));
+            actionMap.putIfAbsent(logCommandPacket.actionNum, new Action(logCommandPacket.usernameAssocWithCommand, logCommandPacket.command));
             // notify maintainer
             synchronized (followerLogMaintainerObject) {
                 followerLogMaintainerObject.notify();
@@ -295,7 +292,7 @@ public class PacketHandler extends Thread {
             CommitCommandPacket commitCommandPacket = (CommitCommandPacket) commandPacket;
             raft.commitAction(commitCommandPacket.actionNum);
             if (raft.getLogPosition() < commitCommandPacket.actionNum) {
-                // TODO request missing log packets
+                // request missing log packets
                 LogPacket logPacket = new LogPacket(serverUsername, raft.getLogPosition());
                 byte[] packetBytes = logPacket.packetToBytes();
                 sendPacket(packetBytes, socketAddress);
@@ -304,10 +301,17 @@ public class PacketHandler extends Thread {
     }
 
     public void handleHeartbeatPacket(Packet packet, SocketAddress socketAddr) {
+        HeartbeatPacket heartbeatPacket = (HeartbeatPacket) packet;
         if (raft.addrIsLeader(socketAddr)) {
             AckPacket ackPacket = new AckPacket(serverUsername);
             byte[] packetBytes = ackPacket.packetToBytes();
             sendPacket(packetBytes, socketAddr);
+            if (raft.getLogPosition() < heartbeatPacket.lastConfirmed) {
+                // request missing log packets
+                LogPacket logPacket = new LogPacket(serverUsername, raft.getLogPosition());
+                byte[] logPacketBytes = logPacket.packetToBytes();
+                sendPacket(logPacketBytes, socketAddr);
+            }
             // Account for worst case where log notification is missed upon log commit.
             raft.notifyLog();
             synchronized (followerLogMaintainerObject) {
@@ -318,7 +322,6 @@ public class PacketHandler extends Thread {
 
     public void handleAckPacket(Packet packet, SocketAddress socketAddr) {
         AckPacket ackPacket = (AckPacket) packet;
-        System.out.println("ACKED");
         System.out.println(ackPacket.username);
     }
 

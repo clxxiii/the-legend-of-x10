@@ -8,7 +8,9 @@ public enum Opcode {
     Command(2),
     Log(3),
     Heartbeat(4),
-    Ack(5);
+    Ack(5),
+    Candidate(6),
+    Vote(7);
 
     public final short code;
 

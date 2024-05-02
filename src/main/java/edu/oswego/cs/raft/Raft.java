@@ -17,6 +17,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -24,9 +25,10 @@ public class Raft {
    
    private final Timer heartBeatTimer = new Timer();
    private final Timer timeoutTimer = new Timer();
+   private final Timer electionTimeoutTimer = new Timer();
    private final ConcurrentHashMap<String, Session> sessionMap = new ConcurrentHashMap<>();
    private final DatagramSocket serverSocket;
-   public volatile RaftMembershipState raftMembershipState;
+   public final AtomicReference<RaftMembershipState> raftMembershipState = new AtomicReference<>();
    public volatile boolean raftSessionActive;
    private final ConcurrentLinkedQueue<Action> queue = new ConcurrentLinkedQueue<>();
    private final Lock logLock = new ReentrantLock();
@@ -40,10 +42,10 @@ public class Raft {
    private final AtomicBoolean keepReceiving = new AtomicBoolean(true);
    private final Object logConfirmerObject = new Object();
    private final Object followerLogMaintainerObject = new Object();
-   private final AtomicBoolean isFollower;
    private final ConcurrentHashMap<Integer, Action> actionMap = new ConcurrentHashMap<>();
    private final MainFrame mainFrame;
    private final Encryption encryption = new Encryption();
+   private final AtomicInteger termCounter = new AtomicInteger(0);
 
    public Raft(int serverPort, String clientUserName, MainFrame mainFrame) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
@@ -53,7 +55,6 @@ public class Raft {
       rsm = new ReplicatedStateMachine(log, lastActionConfirmed, gameActive, this, mainFrame, clientUserName);
       this.clientUserName = clientUserName;
       raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log, encryption);
-      isFollower = new AtomicBoolean(true);
       this.mainFrame = mainFrame;
       raftReceiver.start();
    }
@@ -75,10 +76,10 @@ public class Raft {
                } finally {
                   logLock.unlock();
                }
-               packet = new LogCommandPacket(action.getUserName(), termNum, action.getCommand());
+               packet = new LogCommandPacket(clientUserName, termNum, action.getUserName(), action.getCommand());
                messageBytes = packet.packetToBytes();
             } else {
-               packet = new HeartbeatPacket(clientUserName);
+               packet = new HeartbeatPacket(clientUserName, lastActionConfirmed.get());
                messageBytes = packet.packetToBytes();
             }
 
@@ -96,7 +97,7 @@ public class Raft {
             }
          }
       };
-      long periodInMS = 100;
+      long periodInMS = 10;
       heartBeatTimer.schedule(task, 0, periodInMS);
    }
 
@@ -111,7 +112,7 @@ public class Raft {
             sessionMap.forEach(1, (key, value) -> {
                if (value.getMembershipState() == RaftMembershipState.FOLLOWER && !value.getTimedOut()) {
                   long nanoTime = System.nanoTime();
-                  long disconnectThreshold = 600_000_000L;
+                  long disconnectThreshold = 200_000_000L;
                   long timeDifference = nanoTime - value.getLMRSTINT();
                   if (timeDifference > disconnectThreshold) {
                      value.setTimedOut(true);
@@ -138,13 +139,12 @@ public class Raft {
    }
 
    public void startRaftGroup() {
-      isFollower.set(false);
       encryption.generateSecretKey();
-      raftMembershipState = RaftMembershipState.LEADER;
+      raftMembershipState.set(RaftMembershipState.LEADER);
       raftSessionActive = true;
       this.userNameOfLeader = clientUserName;
       queue.add(new Action(userNameOfLeader, RaftAdministrationCommand.ADD_MEMBER.name + " " + userNameOfLeader + " " + System.nanoTime() + " " + serverSocket.getLocalAddress().toString().replace("/", "")));
-      sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState));
+      sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState.get()));
       startHeartBeat();
       startTimeoutTimer();
       (new RaftLogConfirmer(logConfirmerObject, sessionMap, lastActionConfirmed, gameActive, clientUserName, serverSocket, log)).start();
@@ -158,23 +158,23 @@ public class Raft {
       synchronized (logConfirmerObject) {
          logConfirmerObject.notify();
       }
-      isFollower.set(false);
       synchronized (followerLogMaintainerObject) {
          followerLogMaintainerObject.notify();
       }
       keepReceiving.set(false);
+      stopElectionTimeout();
       serverSocket.close();
       rsm.stop();
    }
 
    public void joinRaftGroup(SocketAddress groupAddress) {
       try {
-         raftMembershipState = RaftMembershipState.FOLLOWER;
+         raftMembershipState.set(RaftMembershipState.FOLLOWER);
          ConnectionClientHelloPacket clientHelloPacket = new ConnectionClientHelloPacket(clientUserName, encryption.getPublicKey());
          byte[] connectHelloPacketBytes = clientHelloPacket.packetToBytes();
          DatagramPacket packet = new DatagramPacket(connectHelloPacketBytes, connectHelloPacketBytes.length, groupAddress);
          rsm.start();
-         (new RaftFollowerLogMaintainer(isFollower, logLock, log, lastActionConfirmed, followerLogMaintainerObject, actionMap)).start();
+         (new RaftFollowerLogMaintainer(raftMembershipState, logLock, log, lastActionConfirmed, followerLogMaintainerObject, actionMap)).start();
          serverSocket.send(packet);
       } catch (IOException e) {
          System.err.println("Something went wrong when trying to connect.");
@@ -242,8 +242,12 @@ public class Raft {
 
    public void updateSessionTimeStamp(String username, SocketAddress socketAddress) {
       Session session = sessionMap.get(username);
-      if (session != null && session.getSocketAddress().toString().equals(socketAddress.toString())) {
+      if (session != null ) {
          session.setLMRSTINT(System.nanoTime());
+         // The user is actually still here.
+         if (session.getTimedOut()) {
+            session.setTimedOut(false);
+         }
       }
    }
 
@@ -300,5 +304,33 @@ public class Raft {
             System.err.println("An IOException is thrown when trying to send a heartbeat.");
          }
       }
+   }
+
+   public void startElectionTimeout() {
+      TimerTask task = new TimerTask() {
+         @Override
+         public void run() {
+            boolean runElection = true;
+            if (userNameOfLeader != null) {
+               Session leaderSession = sessionMap.get(userNameOfLeader);
+               if (leaderSession != null) {
+                  long timeStamp = leaderSession.getLMRSTINT();
+                  long timeDiff = System.nanoTime() - timeStamp;
+                  if (timeDiff < 300_000_000L) {
+                     runElection = false;
+                  }
+               }
+            }
+            if (runElection) {
+               System.out.println("Run an election");
+            }
+         }
+      };
+      long periodInMS = 50L;
+      electionTimeoutTimer.schedule(task, 0, periodInMS);
+   }
+
+   public void stopElectionTimeout() {
+      electionTimeoutTimer.cancel();
    }
 }
