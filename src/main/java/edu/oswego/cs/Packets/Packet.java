@@ -47,6 +47,10 @@ public abstract class Packet {
                 return CommandPacket.bytesToPacket(buffer);
             case Log:
                 return LogPacket.bytesToPacket(buffer);
+            case Candidate:
+                return CandidatePacket.bytesToPacket(buffer);
+            case Vote:
+                return VotePacket.bytesToPacket(buffer);
             default:
                 return null;
         }

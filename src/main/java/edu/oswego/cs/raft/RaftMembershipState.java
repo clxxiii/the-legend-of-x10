@@ -4,5 +4,6 @@ public enum RaftMembershipState {
    PENDING_FOLLOWER,
    FOLLOWER,
    CANDIDATE,
-   LEADER
+   LEADER,
+   SHUTDOWN
 }

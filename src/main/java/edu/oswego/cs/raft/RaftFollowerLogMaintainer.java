@@ -6,19 +6,20 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 
 public class RaftFollowerLogMaintainer extends Thread {
 
-    private final AtomicBoolean isFollower;
+    private final AtomicReference<RaftMembershipState> raftState;
     private final Lock logLock;
     private final AtomicInteger lastActionConfirmed;
     private final List<Action> log;
     private final Object followerLogMaintainerObject;
     private final ConcurrentHashMap<Integer, Action> actionMap;
 
-    public RaftFollowerLogMaintainer(AtomicBoolean isFollower, Lock logLock, List<Action> log, AtomicInteger lastActionConfirmed, Object followerLogMaintainerObject, ConcurrentHashMap<Integer, Action> actionMap) {
-        this.isFollower = isFollower;
+    public RaftFollowerLogMaintainer(AtomicReference<RaftMembershipState> raftState, Lock logLock, List<Action> log, AtomicInteger lastActionConfirmed, Object followerLogMaintainerObject, ConcurrentHashMap<Integer, Action> actionMap) {
+        this.raftState = raftState;
         this.logLock = logLock;
         this.lastActionConfirmed = lastActionConfirmed;
         this.followerLogMaintainerObject = followerLogMaintainerObject;
@@ -29,7 +30,7 @@ public class RaftFollowerLogMaintainer extends Thread {
     @Override
     public void run() {
         try {
-            while (isFollower.get()) {
+            while (raftState.get() == RaftMembershipState.FOLLOWER) {
                 boolean madeAddition = true;
                 while (log.size() <= lastActionConfirmed.get() && madeAddition) {
                     // make addition to log and keep going while log pieces exist
