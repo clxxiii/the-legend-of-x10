@@ -135,6 +135,8 @@ public class Raft {
    public void addSession(String username, Session session) {
       // only add a user if they don't exist in the map
       System.out.println(clientCount.incrementAndGet());
+      System.out.println(username);
+      System.out.println(session.getSocketAddress());
       Session userSession = sessionMap.putIfAbsent(username, session);
       if (userSession != null && userSession.getMembershipState() == RaftMembershipState.PENDING_FOLLOWER) {
          userSession.setLMRSTINT(System.nanoTime());
@@ -324,6 +326,7 @@ public class Raft {
    public void startElectionTimeout() {
       electionTimeoutTimer = new Timer();
       long timeOut = (new Random()).longs(300_000_000L, 500_000_000L).findFirst().getAsLong();
+      System.out.println(timeOut);
       TimerTask task = new TimerTask() {
          @Override
          public void run() {
@@ -344,8 +347,8 @@ public class Raft {
             }
          }
       };
-      long periodInMS = 50L;
-      electionTimeoutTimer.schedule(task, 0, periodInMS);
+      long periodInMS = new Random().longs(150, 350).findFirst().getAsLong();
+      electionTimeoutTimer.schedule(task, periodInMS, periodInMS);
    }
 
    public void stopElectionTimeout() {
@@ -388,13 +391,16 @@ public class Raft {
       CandidatePacket candidatePacket = new CandidatePacket(clientUserName, termCounter.get(), getLogPosition());
       byte[] packetBytes = candidatePacket.packetToBytes();
       sessionMap.forEachValue(1, (value) -> {
-         sendPacket(packetBytes, value.getSocketAddress());
+         if (value.getMembershipState() == RaftMembershipState.FOLLOWER) {
+            sendPacket(packetBytes, value.getSocketAddress());
+            System.out.println(value.getSocketAddress());
+         }
       });
    }
 
    public void runElection() {
       convertToCandidate();
-      electionTimeoutTimer.cancel();
+      stopElectionTimeout();
       if (!voted.get()) {
          voted.set(true);
          voteCounter.set(1);
@@ -441,6 +447,7 @@ public class Raft {
    }
 
    public void resetVote() {
+      resetVotes();
       voted.set(false);
    }
 
