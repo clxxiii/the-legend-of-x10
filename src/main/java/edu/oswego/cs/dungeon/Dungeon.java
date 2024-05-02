@@ -34,11 +34,9 @@ public class Dungeon {
         seed ^= seed << 17;
     }
 
+    //TODO: Send back output text if someone entered your room
     public GameCommandOutput move(String username, char direction) {
-        GameCommandOutput output = new GameCommandOutput();
-        output.successful = false;
-        output.username = username;
-        output.textOutput = "Can't move that way!";
+        GameCommandOutput output = new GameCommandOutput(username, "Can't move that way!", false);
 
         GameUser gameUser = currentUsers.get(username);
         char directionCaps = Character.toUpperCase(direction);
@@ -75,6 +73,21 @@ public class Dungeon {
         if(output.successful) {
             output.textOutput = "Moved " + direction + ". Current room: " + gameUser.currentRoom.prettyRoomNumber() + ".";
         }
+
+        return output;
+    }
+
+    public GameCommandOutput attack(String username, String target) {
+        GameCommandOutput output = new GameCommandOutput(username, "", false);
+
+        GameUser gameUser = currentUsers.get(username);
+        if(gameUser.currentRoom.entities.isEmpty()) {
+            output.textOutput = "Nothing here to attack!";
+            return output;
+        }
+
+        Entity entity = null;
+
 
         return output;
     }

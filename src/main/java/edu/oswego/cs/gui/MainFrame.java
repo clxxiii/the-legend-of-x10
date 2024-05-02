@@ -108,7 +108,6 @@ public class MainFrame extends JFrame {
         mainPanel.add(inputPanel, BorderLayout.SOUTH);
 
         //This way the exit button actually exits :D
-        //TODO: Will likely need to perform an equivalent of the ".exit" command for raft
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         //Action listener stuff
@@ -137,7 +136,7 @@ public class MainFrame extends JFrame {
             String[] chunked = inputText.split(" ");
 
             Optional<Command> optionalCommand = Command.parse(chunked[0].toLowerCase());
-            //TODO: These should be in the enums for Raft, but I don't want to muck with that without Dave
+
             if (optionalCommand.isPresent()) {
                 Command command = optionalCommand.get();
                 switch (command) {
@@ -157,16 +156,24 @@ public class MainFrame extends JFrame {
 
                     case MOVE:
                         if (chunked.length == 1) {
-                            messages.add("Nowhere to go!"); //TODO: List available exits
+                            messages.add("Nowhere to go!");
+                            break;
+                        }
+
+                        raft.sendMessage(inputText);
+                        break;
+
+                    case ATTACK:
+                        if (chunked.length == 1) {
+                            messages.add("Nothing to attack!");
                             break;
                         }
 
                         raft.sendMessage(inputText);
 
-                        break;
-
                     default:
                         messages.add("Didn't understand that!");
+                        break;
                 }
             } else {
                 messages.add("Didn't understand that!");
@@ -202,6 +209,7 @@ public class MainFrame extends JFrame {
         if(user.currentRoom.entities.isEmpty()) return;
 
         for(Entity entity: user.currentRoom.entities) {
+            if(entity.isDead()) continue;
             addMessage("Enemy in room! " + entity.name + " spawned in!");
         }
     }
