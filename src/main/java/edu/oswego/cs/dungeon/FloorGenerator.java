@@ -5,33 +5,34 @@ import java.util.LinkedList;
 import java.util.Random;
 
 public class FloorGenerator {
-  private long seed;
   private final Random rand;
   private RoomGenerator roomGen;
 
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
+  private SpawnWheel<Boss> bossWheel;
+  private int floorNum = 0;
 
   private HashMap<String, Room> map = new HashMap<>();
   private LinkedList<Room> leaves = new LinkedList<>();
 
-  private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
 
-  public FloorGenerator(long seed) {
-    this.seed = seed;
-    rand = new Random(this.seed);
+  public FloorGenerator(Random rand) {
+    this.rand = rand;
   }
 
   public Floor generate(int floorNum) {
     // Reset everything for next use
     map.clear();
     leaves.clear();
-    roomsToMake = FLOOR_ROOM_COUNT;
+    roomsToMake = getNumberOfRooms();
+    floorNum++;
 
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
-    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel);
+    bossWheel = new SpawnWheel<Boss>(Boss.class, floorNum, rand.nextLong());
+    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel, bossWheel);
 
     Floor floor = new Floor();
 
@@ -42,7 +43,7 @@ public class FloorGenerator {
     map.put("0,0", startingRoom);
     leaves.add(startingRoom);
 
-    while (roomsToMake > 1) {
+    while (!leaves.isEmpty() && roomsToMake > 1) {
       makeBranches();
     }
 
@@ -137,6 +138,11 @@ public class FloorGenerator {
         break;
     }
     roomsToMake--;
+  }
+
+  private int getNumberOfRooms() {
+    // https://www.desmos.com/calculator/3mixdknu2m
+    return (int) (Math.log(floorNum + 1) / Math.log(1.2)) + 10;
   }
 
   /**
