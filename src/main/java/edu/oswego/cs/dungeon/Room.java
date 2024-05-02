@@ -35,6 +35,10 @@ public class Room {
     entities.add(e);
   }
 
+  public boolean isBossRoom() {
+    return false;
+  }
+
   public String toString() {
     String topChar = northExit != null ? " " : "─";
     String rightChar = eastExit != null ? " " : "│";
@@ -47,6 +51,10 @@ public class Room {
   }
 
   public String prettyRoomNumber() {
+    if (isBossRoom()) {
+      return " B ";
+    }
+
     if (roomNumber < 10) {
       return "00" + roomNumber;
     } else if (roomNumber < 100) {
