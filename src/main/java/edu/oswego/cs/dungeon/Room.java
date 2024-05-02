@@ -1,6 +1,7 @@
 package edu.oswego.cs.dungeon;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 //CHANGE BY VICTOR: Made room references public, made prettyRoomNumber public
@@ -13,7 +14,7 @@ public class Room {
 
   public List<Item> items;
   public List<Entity> entities;
-  public List<GameUser> users;
+  public HashMap<String, GameUser> users;
 
   int xPos;
   int yPos;
@@ -21,7 +22,7 @@ public class Room {
   Room() {
     items = new ArrayList<>();
     entities = new ArrayList<>();
-    users = new ArrayList<>();
+    users = new HashMap<>();
   }
 
   void setCoordinates(int x, int y) {
@@ -37,9 +38,9 @@ public class Room {
     entities.add(e);
   }
 
-  public void addUser(GameUser user) { users.add(user); }
+  public void addUser(GameUser user) { users.put(user.username, user); }
 
-  public void removeUser(GameUser user) { users.remove(user); }
+  public void removeUser(GameUser user) { users.remove(user.username); }
 
   public boolean isBossRoom() {
     return false;

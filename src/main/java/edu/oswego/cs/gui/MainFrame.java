@@ -219,7 +219,7 @@ public class MainFrame extends JFrame {
             addMessage("Enemy in room! " + entity.name + " spawned in!");
         }
 
-        for(GameUser user: this.currentRoom.users) {
+        for(GameUser user: this.currentRoom.users.values()) {
             if(user.isDead()) {
                 addMessage("The corpse of " + user.username + " stinks up the room.");
             } else {
