@@ -45,7 +45,7 @@ public class Args {
     }
     args.put("port", input[3]);
 
-    if (array.length <= 4) {
+    if (array.length >= 4) {
       args.put("local_port", input[4]);
     }
 
