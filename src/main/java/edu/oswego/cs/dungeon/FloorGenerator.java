@@ -53,6 +53,11 @@ public class FloorGenerator {
   private void makeBranches() {
     Room current = leaves.poll();
 
+    if (current == null) {
+      makeRoom(ExitEnum.random(rand), current);
+      return;
+    }
+
     // [N, E, S, W]
     int[] odds = getGenerationOdds();
     boolean connected = false;
