@@ -13,6 +13,7 @@ public class Dungeon {
     public void addUser(GameUser gameUser) {
         if(currentUsers == null) currentUsers = new HashMap<>();
         currentUsers.put(gameUser.username, gameUser);
+        gameUser.currentRoom.addUser(gameUser);
     }
 
     public Dungeon(long seed) {

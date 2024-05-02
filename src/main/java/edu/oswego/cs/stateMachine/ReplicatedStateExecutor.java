@@ -89,6 +89,7 @@ public class ReplicatedStateExecutor extends Thread {
                                 case ADD_MEMBER:
                                     String username = handleAddMember(brokenDownCommand[1]);
                                     dungeon.addUser(new GameUser(firstFloor.getEntrance(), username));
+                                    mainFrame.addMessage("Joined: " + username);
                                     break;
                                 case SEED_DUNGEON: {
                                     long seed = Long.parseLong(brokenDownCommand[1]);
