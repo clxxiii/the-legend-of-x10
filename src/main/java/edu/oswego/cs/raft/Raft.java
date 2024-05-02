@@ -9,6 +9,8 @@ import edu.oswego.cs.stateMachine.ReplicatedStateMachine;
 import java.io.IOException;
 import java.net.*;
 
+import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -326,7 +328,6 @@ public class Raft {
    public void startElectionTimeout() {
       electionTimeoutTimer = new Timer();
       long timeOut = (new Random()).longs(300_000_000L, 500_000_000L).findFirst().getAsLong();
-      System.out.println(timeOut);
       TimerTask task = new TimerTask() {
          @Override
          public void run() {
@@ -393,7 +394,15 @@ public class Raft {
       sessionMap.forEachValue(1, (value) -> {
          if (value.getMembershipState() == RaftMembershipState.FOLLOWER) {
             sendPacket(packetBytes, value.getSocketAddress());
-            System.out.println(value.getSocketAddress());
+            ByteBuffer buffer = ByteBuffer.allocate(1024);
+            buffer.put(packetBytes);
+            try {
+               Packet packet = Packet.bytesToPacket(buffer);
+            } catch (ParseException e) {
+               System.out.println("Parse exception thrown");
+            } catch (NullPointerException e) {
+               System.out.println("null pointer");
+            }
          }
       });
    }
@@ -409,11 +418,6 @@ public class Raft {
             return;
          }
          sendOutCandidatePackets();
-         try {
-            Thread.sleep(500);
-         } catch (InterruptedException e) {
-
-         }
          if (raftMembershipState.get() == RaftMembershipState.CANDIDATE) {
             startElectionTimeout();
          }
