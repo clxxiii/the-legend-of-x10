@@ -42,7 +42,7 @@ public class FloorGenerator {
     map.put("0,0", startingRoom);
     leaves.add(startingRoom);
 
-    while (roomsToMake > 1) {
+    while (!leaves.isEmpty() && roomsToMake > 1) {
       makeBranches();
     }
 
@@ -52,11 +52,6 @@ public class FloorGenerator {
 
   private void makeBranches() {
     Room current = leaves.poll();
-
-    if (current == null) {
-      makeRoom(ExitEnum.random(rand), current);
-      return;
-    }
 
     // [N, E, S, W]
     int[] odds = getGenerationOdds();
