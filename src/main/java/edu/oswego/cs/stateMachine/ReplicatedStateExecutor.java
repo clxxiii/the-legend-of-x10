@@ -30,10 +30,10 @@ public class ReplicatedStateExecutor extends Thread {
     private final Raft raft;
     private final MainFrame mainFrame;
     private final String clientUsername;
-    private final Dungeon dungeon;
-    private final Floor currentFloor;
-    private final Floor firstFloor;
-    private final GameUser user;
+    private Dungeon dungeon;
+    private Floor currentFloor;
+    private Floor firstFloor;
+    private GameUser user;
 
     public ReplicatedStateExecutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft, MainFrame mainFrame, String clientUsername) {
         this.readOnlyLog = readOnlyLog;
@@ -43,12 +43,6 @@ public class ReplicatedStateExecutor extends Thread {
         this.raft = raft;
         this.mainFrame = mainFrame;
         this.clientUsername = clientUsername;
-
-        this.dungeon = new Dungeon(123098123891l);
-        this.firstFloor = currentFloor = dungeon.makeFloor();
-        user = new GameUser(currentFloor.getEntrance(), clientUsername);
-        this.dungeon.addUser(user);
-        mainFrame.initialize(user.username, user.getRoomNumber(), currentFloor);
     }
 
     @Override
@@ -93,6 +87,11 @@ public class ReplicatedStateExecutor extends Thread {
                                     String username = handleAddMember(brokenDownCommand[1]);
                                     dungeon.addUser(new GameUser(firstFloor.getEntrance(), username));
                                     break;
+                                case SEED_DUNGEON: {
+                                    long seed = Long.parseLong(brokenDownCommand[1]);
+                                    startupDungeon(seed);
+                                    break;
+                                }
                             }
                         }
                     }
@@ -107,15 +106,23 @@ public class ReplicatedStateExecutor extends Thread {
         String[] args = commandArgs.split(" ");
         int numExpectedArgs = 3;
         if (args.length == numExpectedArgs) {
-            String[] addr = args[2].split(":");
-            if (addr.length == 2) {
-                SocketAddress socketAddress = new InetSocketAddress(addr[0], Integer.parseInt(addr[1]));
-                raft.addSession(args[0], new Session(socketAddress, Long.parseLong(args[1]), RaftMembershipState.FOLLOWER));
-                return args[0];
-            }
+            int index = args[2].lastIndexOf(":");
+            String addr = args[2].substring(0, index);
+            int port = Integer.parseInt(args[2].substring(index + 1));
+            SocketAddress socketAddress = new InetSocketAddress(addr, port);
+            raft.addSession(args[0], new Session(socketAddress, Long.parseLong(args[1]), RaftMembershipState.FOLLOWER));
+            return args[0];
         }
 
         return null;
+    }
+
+    public void startupDungeon(long seed) {
+        this.dungeon = new Dungeon(seed);
+        this.firstFloor = currentFloor = dungeon.makeFloor();
+        user = new GameUser(currentFloor.getEntrance(), clientUsername);
+        this.dungeon.addUser(user);
+        mainFrame.initialize(user.username, user.getRoomNumber(), currentFloor);
     }
 
 }

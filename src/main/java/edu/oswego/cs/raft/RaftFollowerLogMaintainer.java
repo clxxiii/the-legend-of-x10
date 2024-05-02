@@ -32,7 +32,7 @@ public class RaftFollowerLogMaintainer extends Thread {
         try {
             while (raftState.get() == RaftMembershipState.FOLLOWER) {
                 boolean madeAddition = true;
-                while (log.size() <= lastActionConfirmed.get() && madeAddition) {
+                while (madeAddition) {
                     // make addition to log and keep going while log pieces exist
                     Action action = actionMap.get(log.size());
                     if (action != null) {

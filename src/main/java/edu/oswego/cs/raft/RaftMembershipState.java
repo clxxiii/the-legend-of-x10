@@ -5,5 +5,6 @@ public enum RaftMembershipState {
    FOLLOWER,
    CANDIDATE,
    LEADER,
-   SHUTDOWN
+   SHUTDOWN,
+   DISCONNECTED
 }

@@ -20,7 +20,7 @@ public class LogPacket extends Packet {
         buffer.putShort(Opcode.Log.code);
         buffer.putInt(logIndex);
         buffer.put(usernameBytes);
-        buffer.flip();
+        buffer.rewind();
         byte[] packetBytes = new byte[packetSize];
         buffer.get(packetBytes);
         return packetBytes;

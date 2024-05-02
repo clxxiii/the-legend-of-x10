@@ -107,7 +107,6 @@ public class PacketHandler extends Thread {
     }
 
     public void handleConnectPacket(Packet packet, SocketAddress socketAddr) {
-        System.out.println("Client Connect received.");
         ConnectPacket connectPacket = (ConnectPacket) packet;
         switch (connectPacket.subopcode) {
             case ClientHello:
@@ -312,6 +311,7 @@ public class PacketHandler extends Thread {
                 byte[] logPacketBytes = logPacket.packetToBytes();
                 sendPacket(logPacketBytes, socketAddr);
             }
+            raft.commitAction(heartbeatPacket.lastConfirmed);
             // Account for worst case where log notification is missed upon log commit.
             raft.notifyLog();
             synchronized (followerLogMaintainerObject) {
@@ -322,7 +322,6 @@ public class PacketHandler extends Thread {
 
     public void handleAckPacket(Packet packet, SocketAddress socketAddr) {
         AckPacket ackPacket = (AckPacket) packet;
-        System.out.println(ackPacket.username);
     }
 
     public void sendPacket(byte[] bytes, SocketAddress socketAddress) {

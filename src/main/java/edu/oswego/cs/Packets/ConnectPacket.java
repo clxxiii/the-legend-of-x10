@@ -48,7 +48,7 @@ public class ConnectPacket extends Packet{
 
         //Make sure something's actually there
         if(!optionSubopcode.isPresent()) {
-            throw new ParseException("Invalid opcode", 0);
+            return null;
         }
         //Now get the ACTUAL opcode
         ConnectSubopcode subOpcode = optionSubopcode.get();

@@ -9,7 +9,8 @@ public enum RaftAdministrationCommand {
     ADD_MEMBER("add_mem"),
     TIME_OUT_MEMBER("time_out"),
     ELECT_LEADER("elect_leader"),
-    REMOVE_MEMBER("remove_mem");
+    REMOVE_MEMBER("remove_mem"),
+    SEED_DUNGEON("seed_dungeon");
 
     public final String name;
 
