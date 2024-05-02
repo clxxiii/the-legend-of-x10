@@ -339,19 +339,26 @@ public class PacketHandler extends Thread {
     }
 
     public void handleCandidatePacket(Packet packet, SocketAddress socketAddress) {
+        System.out.println("Candidate Spotted.");
         CandidatePacket candidatePacket = (CandidatePacket) packet;
+        System.out.println(candidatePacket.username);
+        System.out.println(candidatePacket.logPosition);
+        System.out.println(candidatePacket.termCount);
+        System.out.println(raft.getLogPosition());
+        System.out.println(raft.getTermNum());
         if (candidatePacket.termCount > raft.getTermNum() && candidatePacket.logPosition >= raft.getLogPosition()) {
             // change to follower
             boolean success = transformToFollower(candidatePacket.username, socketAddress, candidatePacket.termCount);
             if (success) {
                 // send vote
-                VotePacket votePacket = new VotePacket(candidatePacket.username, raft.getTermNum());
+                VotePacket votePacket = new VotePacket(serverUsername, raft.getTermNum());
                 sendPacket(votePacket.packetToBytes(), socketAddress);
             }
         }
     }
 
     public void handleVotePacket(Packet packet, SocketAddress socketAddress) {
+        System.out.println("Vote Spotted.");
         VotePacket votePacket = (VotePacket) packet;
         if (raft.raftMembershipState.get() == RaftMembershipState.CANDIDATE) {
             raft.addVote(votePacket.username, votePacket.termNum);
