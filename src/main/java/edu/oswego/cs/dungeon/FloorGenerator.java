@@ -5,12 +5,12 @@ import java.util.LinkedList;
 import java.util.Random;
 
 public class FloorGenerator {
-  private long seed;
   private final Random rand;
   private RoomGenerator roomGen;
 
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
+  private SpawnWheel<Boss> bossWheel;
 
   private HashMap<String, Room> map = new HashMap<>();
   private LinkedList<Room> leaves = new LinkedList<>();
@@ -18,9 +18,8 @@ public class FloorGenerator {
   private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
 
-  public FloorGenerator(long seed) {
-    this.seed = seed;
-    rand = new Random(this.seed);
+  public FloorGenerator(Random rand) {
+    this.rand = rand;
   }
 
   public Floor generate(int floorNum) {
@@ -31,7 +30,8 @@ public class FloorGenerator {
 
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
-    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel);
+    bossWheel = new SpawnWheel<Boss>(Boss.class, floorNum, rand.nextLong());
+    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel, bossWheel);
 
     Floor floor = new Floor();
 
@@ -52,6 +52,11 @@ public class FloorGenerator {
 
   private void makeBranches() {
     Room current = leaves.poll();
+
+    if (current == null) {
+      makeRoom(ExitEnum.random(rand), current);
+      return;
+    }
 
     // [N, E, S, W]
     int[] odds = getGenerationOdds();
