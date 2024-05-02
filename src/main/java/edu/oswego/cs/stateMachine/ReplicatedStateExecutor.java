@@ -80,6 +80,7 @@ public class ReplicatedStateExecutor extends Thread {
                                 break;
                             case ATTACK:
                                 output = dungeon.attack(action.getUserName(), brokenDownCommand[1]);
+                                mainFrame.addMessage(output.textOutput);
                                 break;
                             case ASCEND:
                                 output = dungeon.ascend(action.getUserName());
