@@ -1,7 +1,7 @@
 package edu.oswego.cs.dungeon;
 
 public class BossRoom extends Room {
-  private Dungeon dungeon;
+  protected Dungeon dungeon;
   public Boss boss;
 
   @Override
