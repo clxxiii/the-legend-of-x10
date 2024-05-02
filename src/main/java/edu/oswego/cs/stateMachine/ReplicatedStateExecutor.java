@@ -67,19 +67,22 @@ public class ReplicatedStateExecutor extends Thread {
                                 if (brokenDownCommand.length > 1) mainFrame.addMessage(action.getUserName() + ": " + brokenDownCommand[1]);
                                 break;
                             case MOVE:
-                                System.out.println("MOVE: " + commandToBeParsed);
                                 System.out.println(action.getUserName());
                                 output = dungeon.move(action.getUserName(), brokenDownCommand[1].charAt(0));
 
                                 if (output.username.equals(clientUsername)) {
+                                    mainFrame.currentRoom = output.room;
                                     mainFrame.addMessage(output.textOutput);
-                                    mainFrame.listRoomEnemies();
+                                    mainFrame.listRoomEnemies(clientUsername);
                                 } else if(output.room.users.containsKey(user.username)) {
                                     mainFrame.addMessage(output.username + " has entered the room.");
                                 }
                                 break;
                             case ATTACK:
                                 output = dungeon.attack(action.getUserName(), brokenDownCommand[1]);
+                                break;
+                            case ASCEND:
+                                output = dungeon.ascend(action.getUserName());
                                 break;
                         }
                     //vvvv  NO TOUCH  vvvvv

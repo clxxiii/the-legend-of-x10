@@ -8,7 +8,8 @@ public enum Command {
     CHAT(".chat"),
     MOVE(".move"),
     ATTACK(".fight", ".attack"),
-    LOOK(".look");
+    LOOK(".look"),
+    ASCEND(".ascend");
 
 
     public final String[] names;
