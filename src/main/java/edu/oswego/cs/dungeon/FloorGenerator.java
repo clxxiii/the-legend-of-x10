@@ -10,6 +10,7 @@ public class FloorGenerator {
 
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
+  private SpawnWheel<Boss> bossWheel;
 
   private HashMap<String, Room> map = new HashMap<>();
   private LinkedList<Room> leaves = new LinkedList<>();
@@ -29,7 +30,8 @@ public class FloorGenerator {
 
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
-    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel);
+    bossWheel = new SpawnWheel<Boss>(Boss.class, floorNum, rand.nextLong());
+    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel, bossWheel);
 
     Floor floor = new Floor();
 
