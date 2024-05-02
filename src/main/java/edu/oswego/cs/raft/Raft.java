@@ -432,9 +432,11 @@ public class Raft {
    }
 
    public void demoteLeader() {
-      Session session = sessionMap.get(userNameOfLeader);
-      if (session != null) {
-         session.setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
+      if (userNameOfLeader != null) {
+         Session session = sessionMap.get(userNameOfLeader);
+         if (session != null) {
+            session.setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
+         }
       }
    }
 
