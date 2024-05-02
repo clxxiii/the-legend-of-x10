@@ -8,24 +8,21 @@ import java.util.Optional;
 
 public class VotePacket extends Packet {
 
-    public final Vote vote;
-    public final int termCount;
+    public final int termNum;
 
-    public VotePacket(String username, Vote vote, int termCount) {
+    public VotePacket(String username, int termNum) {
         super(username, Opcode.Vote);
-        this.vote = vote;
-        this.termCount = termCount;
+        this.termNum = termNum;
     }
 
     @Override
     public byte[] packetToBytes() {
         byte[] usernameBytes = this.username.getBytes(StandardCharsets.UTF_8);
-        int byteCount = Short.BYTES + Short.BYTES + usernameBytes.length + Integer.BYTES;
+        int byteCount = Short.BYTES + usernameBytes.length + Integer.BYTES;
         byte[] packetBytes = new byte[byteCount];
         ByteBuffer buffer = ByteBuffer.allocate(byteCount);
         buffer.putShort(Opcode.Candidate.code);
-        buffer.putShort(vote.value);
-        buffer.putInt(termCount);
+        buffer.putInt(termNum);
         buffer.put(usernameBytes);
         buffer.rewind();
         buffer.get(packetBytes);
@@ -33,11 +30,9 @@ public class VotePacket extends Packet {
     }
 
     public static VotePacket bytesToPacket(ByteBuffer buffer) {
-        int termCount = buffer.getInt();
-        Optional<Vote> optionalVote = Vote.fromValue(buffer.getShort());
-        if (!optionalVote.isPresent()) return null;
+        int termNum = buffer.getInt();
         byte[] usernameBytes = new byte[buffer.limit() - buffer.position()];
         buffer.get(usernameBytes);
-        return new VotePacket(new String(usernameBytes, StandardCharsets.UTF_8), optionalVote.get(), termCount);
+        return new VotePacket(new String(usernameBytes, StandardCharsets.UTF_8), termNum);
     }
 }

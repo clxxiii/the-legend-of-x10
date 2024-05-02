@@ -6,13 +6,15 @@ import java.nio.charset.StandardCharsets;
 public class LogCommandPacket extends CommandPacket{
 
     public final int actionNum;
+    public final int termNum;
     public final String command;
     public final String usernameAssocWithCommand;
 
-    public LogCommandPacket(String username, int actionNum, String usernameAssocWithCommand, String command) {
+    public LogCommandPacket(String username, int actionNum, int termNum, String usernameAssocWithCommand, String command) {
         super(CommandSubopcode.LogCommand, username);
         this.command = command;
         this.actionNum = actionNum;
+        this.termNum = termNum;
         this.usernameAssocWithCommand = usernameAssocWithCommand;
     }
 
@@ -22,11 +24,12 @@ public class LogCommandPacket extends CommandPacket{
         byte[] usernameAssocBytes = this.usernameAssocWithCommand.getBytes(StandardCharsets.UTF_8);
         int numOpCodes = 2;
         int paddingByte = 1;
-        int byteCount = numOpCodes * Short.BYTES + Integer.BYTES + usernameBytes.length + paddingByte + usernameAssocBytes.length + paddingByte +commandBytes.length;
+        int byteCount = numOpCodes * Short.BYTES + 2 * Integer.BYTES + usernameBytes.length + paddingByte + usernameAssocBytes.length + paddingByte +commandBytes.length;
         ByteBuffer buffer = ByteBuffer.allocate(byteCount);
         buffer.putShort(Opcode.Command.code);
         buffer.putShort(CommandSubopcode.LogCommand.code);
         buffer.putInt(actionNum);
+        buffer.putInt(termNum);
         buffer.put(usernameBytes);
         buffer.put((byte) 0x00);
         buffer.put(usernameAssocBytes);
@@ -40,6 +43,7 @@ public class LogCommandPacket extends CommandPacket{
 
     public static LogCommandPacket bytesToPacket(ByteBuffer buffer) {
         int actionNum = buffer.getInt();
+        int termNum = buffer.getInt();
         // get original limit
         int bufferLimit = buffer.limit();
 
@@ -70,7 +74,7 @@ public class LogCommandPacket extends CommandPacket{
         byte[] commandBytes = new byte[buffer.limit() - buffer.position()];
         buffer.get(commandBytes);
         String command = new String(commandBytes, StandardCharsets.UTF_8);
-        return new LogCommandPacket(username, actionNum, usernameAssocWithCommand, command);
+        return new LogCommandPacket(username, actionNum, termNum, usernameAssocWithCommand, command);
     }
 
 }
