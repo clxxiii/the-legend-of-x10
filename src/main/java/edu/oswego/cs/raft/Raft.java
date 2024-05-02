@@ -20,9 +20,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Raft {
    
-   private final Timer heartBeatTimer = new Timer();
-   private final Timer timeoutTimer = new Timer();
-   private final Timer electionTimeoutTimer = new Timer();
+   private Timer heartBeatTimer = new Timer();
+   private Timer timeoutTimer = new Timer();
+   private Timer electionTimeoutTimer = new Timer();
    private final ConcurrentHashMap<String, Session> sessionMap = new ConcurrentHashMap<>();
    private final DatagramSocket serverSocket;
    public final AtomicReference<RaftMembershipState> raftMembershipState = new AtomicReference<>();
@@ -61,6 +61,7 @@ public class Raft {
    }
 
    public void startHeartBeat() {
+      heartBeatTimer = new Timer();
       TimerTask task = new TimerTask() {
          public void run() {
             Action action = queue.poll();
@@ -107,6 +108,7 @@ public class Raft {
    }
 
    public void startTimeoutTimer() {
+      timeoutTimer = new Timer();
       TimerTask task = new TimerTask() {
          @Override
          public void run() {
@@ -320,6 +322,7 @@ public class Raft {
    }
 
    public void startElectionTimeout() {
+      electionTimeoutTimer = new Timer();
       long timeOut = (new Random()).longs(300_000_000L, 500_000_000L).findFirst().getAsLong();
       TimerTask task = new TimerTask() {
          @Override
