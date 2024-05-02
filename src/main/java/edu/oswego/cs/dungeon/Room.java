@@ -13,6 +13,7 @@ public class Room {
 
   public List<Item> items;
   public List<Entity> entities;
+  public List<GameUser> users;
 
   int xPos;
   int yPos;
@@ -20,6 +21,7 @@ public class Room {
   Room() {
     items = new ArrayList<>();
     entities = new ArrayList<>();
+    users = new ArrayList<>();
   }
 
   void setCoordinates(int x, int y) {
@@ -34,6 +36,10 @@ public class Room {
   void addEntity(Entity e) {
     entities.add(e);
   }
+
+  public void addUser(GameUser user) { users.add(user); }
+
+  public void removeUser(GameUser user) { users.remove(user); }
 
   public boolean isBossRoom() {
     return false;

@@ -7,7 +7,8 @@ public enum Command {
     EXIT(".exit", ".leave", ".quit"),
     CHAT(".chat"),
     MOVE(".move"),
-    ATTACK(".fight", ".attack");
+    ATTACK(".fight", ".attack"),
+    LOOK(".look");
 
 
     public final String[] names;

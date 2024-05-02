@@ -41,6 +41,8 @@ public class Dungeon {
         GameUser gameUser = currentUsers.get(username);
         char directionCaps = Character.toUpperCase(direction);
 
+        Room roomToRemove = gameUser.currentRoom;
+
         switch(directionCaps) {
             case 'N':
                 if(gameUser.currentRoom.northExit == null) break;
@@ -71,7 +73,10 @@ public class Dungeon {
         }
 
         if(output.successful) {
+            roomToRemove.removeUser(gameUser);
+            gameUser.currentRoom.addUser(gameUser);
             output.textOutput = "Moved " + direction + ". Current room: " + gameUser.currentRoom.prettyRoomNumber() + ".";
+            output.room = gameUser.currentRoom;
         }
 
         return output;

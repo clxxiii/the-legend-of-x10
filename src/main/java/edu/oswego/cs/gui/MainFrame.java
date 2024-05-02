@@ -1,10 +1,7 @@
 package edu.oswego.cs.gui;
 
 import edu.oswego.cs.client.Command;
-import edu.oswego.cs.dungeon.Dungeon;
-import edu.oswego.cs.dungeon.Entity;
-import edu.oswego.cs.dungeon.Floor;
-import edu.oswego.cs.dungeon.GameUser;
+import edu.oswego.cs.dungeon.*;
 import edu.oswego.cs.raft.Raft;
 
 import javax.swing.*;
@@ -22,6 +19,8 @@ public class MainFrame extends JFrame {
     ArrayList<String> messages = new ArrayList<>();
     int lastMessageAccessed = -1;
     private Raft raft;
+    public Floor currentFloor;
+    public Room currentRoom;
 
     public MainFrame() { }
 
@@ -29,7 +28,10 @@ public class MainFrame extends JFrame {
         this.raft = raft;
     }
 
+    //TODO: Have room now, don't need roomNumber
     public void initialize(String username, String roomNumber, Floor currentFloor) {
+        this.currentFloor = currentFloor;
+        this.currentRoom = currentFloor.getEntrance();
         setTitle("The Legend of X10");
 
 
@@ -170,7 +172,11 @@ public class MainFrame extends JFrame {
                         }
 
                         raft.sendMessage(inputText);
+                        break;
+                    case LOOK:
 
+
+                        break;
                     default:
                         messages.add("Didn't understand that!");
                         break;
@@ -205,12 +211,20 @@ public class MainFrame extends JFrame {
         mapOutput.setText(floor.toString());
     }
 
-    public void listRoomEnemies(GameUser user) {
-        if(user.currentRoom.entities.isEmpty()) return;
+    public void listRoomEnemies() {
+        if(this.currentRoom.entities.isEmpty()) return;
 
-        for(Entity entity: user.currentRoom.entities) {
+        for(Entity entity: this.currentRoom.entities) {
             if(entity.isDead()) continue;
             addMessage("Enemy in room! " + entity.name + " spawned in!");
+        }
+
+        for(GameUser user: this.currentRoom.users) {
+            if(user.isDead()) {
+                addMessage("The corpse of " + user.username + " stinks up the room.");
+            } else {
+                addMessage(user.username + " is in the room.");
+            }
         }
     }
 

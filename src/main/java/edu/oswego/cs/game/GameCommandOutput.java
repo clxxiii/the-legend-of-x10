@@ -1,11 +1,13 @@
 package edu.oswego.cs.game;
 
 import edu.oswego.cs.client.Command;
+import edu.oswego.cs.dungeon.Room;
 
 public class GameCommandOutput {
     public String username;
     public String textOutput;
     public boolean successful;
+    public Room room;
 
     public GameCommandOutput(){}
 
@@ -14,4 +16,6 @@ public class GameCommandOutput {
         this.textOutput = textOutput;
         this.successful = successful;
     }
+
+
 }

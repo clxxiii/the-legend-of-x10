@@ -71,11 +71,14 @@ public class ReplicatedStateExecutor extends Thread {
 
                                 if (output.username.equals(clientUsername)) {
                                     mainFrame.addMessage(output.textOutput);
-                                    mainFrame.listRoomEnemies(user);
+                                    mainFrame.listRoomEnemies();
+                                } else if(output.room == user.currentRoom) {
+                                    mainFrame.addMessage(output.username + " has entered the room.");
                                 }
                                 break;
                             case ATTACK:
                                 output = dungeon.attack(action.getUserName(), brokenDownCommand[1]);
+                                break;
                         }
                     //vvvv  NO TOUCH  vvvvv
                     } else {
