@@ -45,6 +45,8 @@ public class Raft {
    private final AtomicInteger termCounter = new AtomicInteger(0);
    private final AtomicBoolean voted = new AtomicBoolean(false);
    private final AtomicInteger voteCounter = new AtomicInteger(0);
+   private final HashSet<String> voteSet = new HashSet<>();
+   private final AtomicInteger clientCount = new AtomicInteger();
 
    public Raft(int serverPort, String clientUserName, MainFrame mainFrame) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
@@ -62,23 +64,23 @@ public class Raft {
       TimerTask task = new TimerTask() {
          public void run() {
             Action action = queue.poll();
-            int termNum = -1;
+            int index= -1;
             byte[] messageBytes;
             Packet packet;
             if (action != null) {
                logLock.lock();
                try {
                   log.add(action);
-                  termNum = log.size() - 1;
-                  sessionMap.get(userNameOfLeader).setGreatestActionConfirmed(termNum);
+                  index = log.size() - 1;
+                  sessionMap.get(userNameOfLeader).setGreatestActionConfirmed(index);
 
                } finally {
                   logLock.unlock();
                }
-               packet = new LogCommandPacket(clientUserName, termNum, action.getUserName(), action.getCommand());
+               packet = new LogCommandPacket(clientUserName, index, termCounter.get(), action.getUserName(), action.getCommand());
                messageBytes = packet.packetToBytes();
             } else {
-               packet = new HeartbeatPacket(clientUserName, lastActionConfirmed.get());
+               packet = new HeartbeatPacket(clientUserName, lastActionConfirmed.get(), termCounter.get());
                messageBytes = packet.packetToBytes();
             }
 
@@ -121,7 +123,7 @@ public class Raft {
          }
       };
       long periodInMS = 300L;
-      timeoutTimer.schedule(task, 0, periodInMS);
+      timeoutTimer.schedule(task, periodInMS, periodInMS);
    }
 
    public void stopTimeout() {
@@ -130,6 +132,7 @@ public class Raft {
 
    public void addSession(String username, Session session) {
       // only add a user if they don't exist in the map
+      System.out.println(clientCount.incrementAndGet());
       Session userSession = sessionMap.putIfAbsent(username, session);
       if (userSession != null && userSession.getMembershipState() == RaftMembershipState.PENDING_FOLLOWER) {
          userSession.setLMRSTINT(System.nanoTime());
@@ -317,6 +320,7 @@ public class Raft {
    }
 
    public void startElectionTimeout() {
+      long timeOut = (new Random()).longs(300_000_000L, 500_000_000L).findFirst().getAsLong();
       TimerTask task = new TimerTask() {
          @Override
          public void run() {
@@ -326,13 +330,14 @@ public class Raft {
                if (leaderSession != null) {
                   long timeStamp = leaderSession.getLMRSTINT();
                   long timeDiff = System.nanoTime() - timeStamp;
-                  if (timeDiff < 300_000_000L) {
+                  if (timeDiff < timeOut) {
                      runElection = false;
                   }
                }
             }
             if (runElection) {
                System.out.println("Run an election");
+               runElection();
             }
          }
       };
@@ -351,6 +356,8 @@ public class Raft {
       sessionMap.get(clientUserName).setMembershipState(RaftMembershipState.FOLLOWER, RaftMembershipState.CANDIDATE);
       if (userNameOfLeader != null) {
          sessionMap.get(userNameOfLeader).setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
+         userNameOfLeader = null;
+         clientCount.decrementAndGet();
       }
       synchronized (followerLogMaintainerObject) {
          followerLogMaintainerObject.notify();
@@ -375,7 +382,7 @@ public class Raft {
    }
 
    public void sendOutCandidatePackets() {
-      CandidatePacket candidatePacket = new CandidatePacket(clientUserName, termCounter.get());
+      CandidatePacket candidatePacket = new CandidatePacket(clientUserName, termCounter.get(), getLogPosition());
       byte[] packetBytes = candidatePacket.packetToBytes();
       sessionMap.forEachValue(1, (value) -> {
          sendPacket(packetBytes, value.getSocketAddress());
@@ -384,8 +391,68 @@ public class Raft {
 
    public void runElection() {
       convertToCandidate();
+      electionTimeoutTimer.cancel();
       if (!voted.get()) {
+         voted.set(true);
+         voteCounter.set(1);
+         if (clientCount.get() == voteCounter.get()) {
+            convertToLeader();
+            return;
+         }
          sendOutCandidatePackets();
+         try {
+            Thread.sleep(500);
+         } catch (InterruptedException e) {
+
+         }
+         if (raftMembershipState.get() == RaftMembershipState.CANDIDATE) {
+            startElectionTimeout();
+         }
       }
+   }
+
+   public int getTermNum() {
+      return termCounter.get();
+   }
+
+   public boolean setTermNum(int termNum) {
+      while (termNum > termCounter.get()) {
+         int expectedTermNum = termCounter.get();
+         if (expectedTermNum < termNum) {
+            boolean success = termCounter.compareAndSet(expectedTermNum, termNum);
+            if (success) return true;
+         } else {
+            return false;
+         }
+      }
+      return false;
+   }
+
+   public void demoteLeader() {
+      Session session = sessionMap.get(userNameOfLeader);
+      if (session != null) {
+         session.setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
+      }
+   }
+
+   public void resetVote() {
+      voted.set(false);
+   }
+
+   public synchronized void addVote(String username, int termNum) {
+      if (raftMembershipState.get() == RaftMembershipState.CANDIDATE && termNum == termCounter.get()) {
+         int oldSize = voteSet.size();
+         voteSet.add(username);
+         if (voteSet.size() > oldSize) {
+            voteCounter.incrementAndGet();
+         }
+         if (voteCounter.get() > clientCount.get() / 2) {
+            convertToLeader();
+         }
+      }
+   }
+
+   public void resetVotes() {
+      voteSet.clear();
    }
 }

@@ -96,6 +96,12 @@ public class PacketHandler extends Thread {
                         case Ack:
                             handleAckPacket(packet, socketAddress);
                             break;
+                        case Vote:
+                            handleVotePacket(packet, socketAddress);
+                            break;
+                        case Candidate:
+                            handleCandidatePacket(packet, socketAddress);
+                            break;
                     }
                 }
             }
@@ -179,7 +185,7 @@ public class PacketHandler extends Thread {
                 int logLength = raft.getLogLength();
                 for (int i = 0; i < logLength; i++) {
                     Action action = raft.getLogIndex(i);
-                    LogCommandPacket logCommandPacket = new LogCommandPacket(raft.getClientUserName(), i, action.getUserName(), action.getCommand());
+                    LogCommandPacket logCommandPacket = new LogCommandPacket(raft.getClientUserName(), i, raft.getTermNum(), action.getUserName(), action.getCommand());
                     byte[] logPacketBytes = logCommandPacket.packetToBytes();
                     // schedule these log command sends
                     scheduledExecutorService.schedule(() -> {
@@ -238,7 +244,7 @@ public class PacketHandler extends Thread {
         }
         for (int i = logIndex; i < readOnlyLog.size(); i++) {
             Action action = readOnlyLog.get(i);
-            LogCommandPacket logCommandPacket = new LogCommandPacket(raft.getClientUserName(), i, action.getUserName(), action.getCommand());
+            LogCommandPacket logCommandPacket = new LogCommandPacket(raft.getClientUserName(), i, raft.getTermNum(), action.getUserName(), action.getCommand());
             byte[] packetBytes = logCommandPacket.packetToBytes();
             // schedule these log command sends
             scheduledExecutorService.schedule(() -> {
@@ -256,6 +262,10 @@ public class PacketHandler extends Thread {
 
     public void handleLogCommandPacket(CommandPacket commandPacket, SocketAddress socketAddress) {
         LogCommandPacket logCommandPacket = (LogCommandPacket) commandPacket;
+        if (raft.getTermNum() < logCommandPacket.termNum) {
+            // convert to follower
+            transformToFollower(logCommandPacket.username, socketAddress, logCommandPacket.termNum);
+        }
         if (raft.raftMembershipState.get() == RaftMembershipState.FOLLOWER) {
             // commit command
             actionMap.putIfAbsent(logCommandPacket.actionNum, new Action(logCommandPacket.usernameAssocWithCommand, logCommandPacket.command));
@@ -301,6 +311,10 @@ public class PacketHandler extends Thread {
 
     public void handleHeartbeatPacket(Packet packet, SocketAddress socketAddr) {
         HeartbeatPacket heartbeatPacket = (HeartbeatPacket) packet;
+        if (raft.getTermNum() < heartbeatPacket.termCount) {
+            // convert to follower
+            transformToFollower(heartbeatPacket.username, socketAddr, heartbeatPacket.termCount);
+        }
         if (raft.addrIsLeader(socketAddr)) {
             AckPacket ackPacket = new AckPacket(serverUsername);
             byte[] packetBytes = ackPacket.packetToBytes();
@@ -324,6 +338,26 @@ public class PacketHandler extends Thread {
         AckPacket ackPacket = (AckPacket) packet;
     }
 
+    public void handleCandidatePacket(Packet packet, SocketAddress socketAddress) {
+        CandidatePacket candidatePacket = (CandidatePacket) packet;
+        if (candidatePacket.termCount > raft.getTermNum() && candidatePacket.logPosition >= raft.getLogPosition()) {
+            // change to follower
+            boolean success = transformToFollower(candidatePacket.username, socketAddress, candidatePacket.termCount);
+            if (success) {
+                // send vote
+                VotePacket votePacket = new VotePacket(candidatePacket.username, raft.getTermNum());
+                sendPacket(votePacket.packetToBytes(), socketAddress);
+            }
+        }
+    }
+
+    public void handleVotePacket(Packet packet, SocketAddress socketAddress) {
+        VotePacket votePacket = (VotePacket) packet;
+        if (raft.raftMembershipState.get() == RaftMembershipState.CANDIDATE) {
+            raft.addVote(votePacket.username, votePacket.termNum);
+        }
+    }
+
     public void sendPacket(byte[] bytes, SocketAddress socketAddress) {
         byte[] encryptedBytes = encryption.encryptMessageWithSecretKey(bytes);
         if (encryptedBytes != null) {
@@ -333,5 +367,19 @@ public class PacketHandler extends Thread {
                 System.err.println("An IOException is thrown when trying to send a message.");
             }
         }
+    }
+
+    public boolean transformToFollower(String username, SocketAddress socketAddr, int termNum) {
+        boolean success = raft.setTermNum(termNum);
+        if (success) {
+            raft.resetVote();
+            raft.demoteLeader();
+            raft.setLeader(username, new Session(socketAddr, System.nanoTime(), RaftMembershipState.LEADER));
+            // rng the election time out
+            raft.stopElectionTimeout();
+            raft.startElectionTimeout();
+            raft.convertToFollower();
+        }
+        return success;
     }
 }
