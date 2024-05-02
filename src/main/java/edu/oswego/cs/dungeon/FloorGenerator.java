@@ -11,11 +11,11 @@ public class FloorGenerator {
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
   private SpawnWheel<Boss> bossWheel;
+  private int floorNum = 0;
 
   private HashMap<String, Room> map = new HashMap<>();
   private LinkedList<Room> leaves = new LinkedList<>();
 
-  private static final int FLOOR_ROOM_COUNT = 10;
   private int roomsToMake = 0;
 
   public FloorGenerator(Random rand) {
@@ -26,7 +26,8 @@ public class FloorGenerator {
     // Reset everything for next use
     map.clear();
     leaves.clear();
-    roomsToMake = FLOOR_ROOM_COUNT;
+    roomsToMake = getNumberOfRooms();
+    floorNum++;
 
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
@@ -137,6 +138,11 @@ public class FloorGenerator {
         break;
     }
     roomsToMake--;
+  }
+
+  private int getNumberOfRooms() {
+    // https://www.desmos.com/calculator/3mixdknu2m
+    return (int) (Math.log(floorNum + 1) / Math.log(1.2)) + 10;
   }
 
   /**
