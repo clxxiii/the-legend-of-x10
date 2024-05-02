@@ -85,6 +85,14 @@ public class Dungeon {
         return output;
     }
 
+    public GameCommandOutput ascend(String username) {
+        GameCommandOutput output = new GameCommandOutput(username, "Ascended!", true);
+        GameUser gameUser = currentUsers.get(username);
+        Room roomToRemove = gameUser.currentRoom;
+        //Room roomToMove = this.floors.get(this.floors.size() -1 );
+        return null;
+    }
+
     public GameCommandOutput attack(String username, String target) {
         GameCommandOutput output = new GameCommandOutput(username, "", false);
 

@@ -177,6 +177,15 @@ public class MainFrame extends JFrame {
 
 
                         break;
+                    case ASCEND:
+                        if(!currentRoom.isBossRoom()){
+                            addMessage("Can't ascend floors here!");
+                            break;
+                        } else {
+                            //TODO: Check to make sure boss is dead
+                            raft.sendMessage(inputText);
+                            break;
+                        }
                     default:
                         messages.add("Didn't understand that!");
                         break;
@@ -211,8 +220,7 @@ public class MainFrame extends JFrame {
         mapOutput.setText(floor.toString());
     }
 
-    public void listRoomEnemies() {
-        if(this.currentRoom.entities.isEmpty()) return;
+    public void listRoomEnemies(String username) {
 
         for(Entity entity: this.currentRoom.entities) {
             if(entity.isDead()) continue;
@@ -222,7 +230,7 @@ public class MainFrame extends JFrame {
         for(GameUser user: this.currentRoom.users.values()) {
             if(user.isDead()) {
                 addMessage("The corpse of " + user.username + " stinks up the room.");
-            } else {
+            } else if(!user.username.equals(username)) {
                 addMessage(user.username + " is in the room.");
             }
         }
