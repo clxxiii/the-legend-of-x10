@@ -20,7 +20,7 @@ public abstract class CommandPacket extends Packet {
         Optional<CommandSubopcode> subopcodeOptional = CommandSubopcode.fromCode(code);
 
         if (!subopcodeOptional.isPresent()) {
-            throw new ParseException("Invalid opcode", 0);
+            return null;
         }
 
         CommandSubopcode subopcode = subopcodeOptional.get();

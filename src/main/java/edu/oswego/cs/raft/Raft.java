@@ -9,11 +9,8 @@ import edu.oswego.cs.stateMachine.ReplicatedStateMachine;
 import java.io.IOException;
 import java.net.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,6 +43,8 @@ public class Raft {
    private final MainFrame mainFrame;
    private final Encryption encryption = new Encryption();
    private final AtomicInteger termCounter = new AtomicInteger(0);
+   private final AtomicBoolean voted = new AtomicBoolean(false);
+   private final AtomicInteger voteCounter = new AtomicInteger(0);
 
    public Raft(int serverPort, String clientUserName, MainFrame mainFrame) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
@@ -143,7 +142,9 @@ public class Raft {
       raftMembershipState.set(RaftMembershipState.LEADER);
       raftSessionActive = true;
       this.userNameOfLeader = clientUserName;
-      queue.add(new Action(userNameOfLeader, RaftAdministrationCommand.ADD_MEMBER.name + " " + userNameOfLeader + " " + System.nanoTime() + " " + serverSocket.getLocalAddress().toString().replace("/", "")));
+      long seed = new Random().nextLong();
+      queue.add(new Action(userNameOfLeader, RaftAdministrationCommand.SEED_DUNGEON.name + " " + seed));
+      queue.add(new Action(userNameOfLeader, RaftAdministrationCommand.ADD_MEMBER.name + " " + userNameOfLeader + " " + System.nanoTime() + " " + serverSocket.getLocalSocketAddress().toString().replace("/", "")));
       sessionMap.put(clientUserName, new Session(serverSocket.getLocalSocketAddress(), System.nanoTime(), raftMembershipState.get()));
       startHeartBeat();
       startTimeoutTimer();
@@ -185,10 +186,19 @@ public class Raft {
    public void commitAction(int index) {
       while (true) {
          int lastConfirmedIndex = lastActionConfirmed.get();
+         int logSize = log.size();
          if (index > lastConfirmedIndex) {
-            lastActionConfirmed.compareAndSet(lastConfirmedIndex, index);
-            synchronized (log) {
-               log.notify();
+            if (logSize > index) {
+               lastActionConfirmed.compareAndSet(lastConfirmedIndex, index);
+               synchronized (log) {
+                  log.notify();
+               }
+            } else if (logSize < index) {
+               lastActionConfirmed.compareAndSet(lastConfirmedIndex, logSize - 1);
+               synchronized (log) {
+                  log.notify();
+               }
+               break;
             }
          } else {
             break;
@@ -332,5 +342,50 @@ public class Raft {
 
    public void stopElectionTimeout() {
       electionTimeoutTimer.cancel();
+   }
+
+   public void convertToCandidate() {
+      raftMembershipState.set(RaftMembershipState.CANDIDATE);
+      voted.set(false);
+      termCounter.incrementAndGet();
+      sessionMap.get(clientUserName).setMembershipState(RaftMembershipState.FOLLOWER, RaftMembershipState.CANDIDATE);
+      if (userNameOfLeader != null) {
+         sessionMap.get(userNameOfLeader).setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
+      }
+      synchronized (followerLogMaintainerObject) {
+         followerLogMaintainerObject.notify();
+      }
+   }
+
+   public void convertToLeader() {
+      raftMembershipState.set(RaftMembershipState.LEADER);
+      sessionMap.get(clientUserName).setMembershipState(RaftMembershipState.CANDIDATE, RaftMembershipState.LEADER);
+      this.userNameOfLeader = clientUserName;
+      startHeartBeat();
+      startTimeoutTimer();
+      (new RaftLogConfirmer(logConfirmerObject, sessionMap, lastActionConfirmed, gameActive, clientUserName, serverSocket, log)).start();
+   }
+
+   public void convertToFollower() {
+      if (raftMembershipState.get() == RaftMembershipState.CANDIDATE) {
+         raftMembershipState.set(RaftMembershipState.FOLLOWER);
+         sessionMap.get(clientUserName).setMembershipState(RaftMembershipState.CANDIDATE, RaftMembershipState.FOLLOWER);
+         (new RaftFollowerLogMaintainer(raftMembershipState, logLock, log, lastActionConfirmed, followerLogMaintainerObject, actionMap)).start();
+      }
+   }
+
+   public void sendOutCandidatePackets() {
+      CandidatePacket candidatePacket = new CandidatePacket(clientUserName, termCounter.get());
+      byte[] packetBytes = candidatePacket.packetToBytes();
+      sessionMap.forEachValue(1, (value) -> {
+         sendPacket(packetBytes, value.getSocketAddress());
+      });
+   }
+
+   public void runElection() {
+      convertToCandidate();
+      if (!voted.get()) {
+         sendOutCandidatePackets();
+      }
    }
 }
