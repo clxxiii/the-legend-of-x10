@@ -21,7 +21,7 @@ public class VotePacket extends Packet {
         int byteCount = Short.BYTES + usernameBytes.length + Integer.BYTES;
         byte[] packetBytes = new byte[byteCount];
         ByteBuffer buffer = ByteBuffer.allocate(byteCount);
-        buffer.putShort(Opcode.Candidate.code);
+        buffer.putShort(Opcode.Vote.code);
         buffer.putInt(termNum);
         buffer.put(usernameBytes);
         buffer.rewind();
