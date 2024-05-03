@@ -36,6 +36,7 @@ public class GameUser implements Fightable{
         this.currentRoom = currentRoom;
         currentRoom.addUser(this);
         this.username = username;
+        this.inventory = new ArrayList<>();
     }
 
     @Override

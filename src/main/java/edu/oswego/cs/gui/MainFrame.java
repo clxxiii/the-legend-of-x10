@@ -186,6 +186,14 @@ public class MainFrame extends JFrame {
                             raft.sendMessage(inputText);
                             break;
                         }
+                    case PICKUP:
+                        if (chunked.length == 1) {
+                            messages.add("Nothing to pickup!");
+                            break;
+                        }
+
+                        raft.sendMessage(inputText);
+                        break;
                     default:
                         messages.add("Didn't understand that!");
                         break;
