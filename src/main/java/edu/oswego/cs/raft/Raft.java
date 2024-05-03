@@ -142,6 +142,7 @@ public class Raft {
          userSession.setLMRSTINT(System.nanoTime());
          userSession.setMembershipState(RaftMembershipState.PENDING_FOLLOWER, RaftMembershipState.FOLLOWER);
       }
+      clientCount.incrementAndGet();
    }
 
    public void startRaftGroup() {
@@ -252,8 +253,8 @@ public class Raft {
             session.setMembershipState(RaftMembershipState.DISCONNECTED, RaftMembershipState.FOLLOWER);
             session.setLMRSTINT(System.nanoTime());
             session.setTimedOut(false);
-            clientCount.incrementAndGet();
          }
+         clientCount.incrementAndGet();
       }
       return session != null;
    }
@@ -357,6 +358,7 @@ public class Raft {
                }
             }
             if (runElection) {
+               System.out.println(clientCount.get());
                runElection();
             }
          }
