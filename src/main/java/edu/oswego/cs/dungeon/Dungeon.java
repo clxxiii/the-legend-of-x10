@@ -139,6 +139,7 @@ public class Dungeon {
         GameCommandOutput output = new GameCommandOutput(username, "", false);
 
         GameUser gameUser = currentUsers.get(username);
+        output.room = gameUser.currentRoom;
         if (gameUser.currentRoom.entities.isEmpty()) {
             output.textOutput = "Nothing here to attack!";
             return output;

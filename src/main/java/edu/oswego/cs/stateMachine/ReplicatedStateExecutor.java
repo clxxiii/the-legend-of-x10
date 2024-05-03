@@ -76,7 +76,7 @@ public class ReplicatedStateExecutor extends Thread {
                                 }
                                 break;
                             case USE: 
-                                output = dungeon.use(clientUsername, brokenDownCommand[1]);
+                                output = dungeon.use(action.getUserName(), brokenDownCommand[1]);
 
                                 if (output.username.equals(clientUsername)) {
                                     mainFrame.addMessage(output.textOutput);
