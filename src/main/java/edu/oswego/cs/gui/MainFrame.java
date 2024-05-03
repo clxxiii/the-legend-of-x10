@@ -179,7 +179,7 @@ public class MainFrame extends JFrame {
                         listRoomEnemies(username, true);
                         listRoomItems();
                         break;
-                    case ASCEND:
+                    case DESCEND:
                         if(!currentRoom.isBossRoom()){
                             addMessage("Can't ascend floors here!");
                             break;

@@ -22,7 +22,7 @@ public class Boss extends Entity {
    */
   @Override
   public int attacked(int damage) {
-    if (getHp() - damage < 0) {
+    if (getHp() - damage <= 0) {
       setHp(0);
       room.dungeon.makeFloor();
     } else {
