@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class Dungeon {
     private ArrayList<Floor> floors;
-    private HashMap<String, GameUser> currentUsers;
+    public HashMap<String, GameUser> currentUsers;
     private long seed;
     private Random rand;
 
@@ -27,7 +27,7 @@ public class Dungeon {
     }
 
     public Floor makeFloor() {
-        FloorGenerator generator = new FloorGenerator(rand);
+        FloorGenerator generator = new FloorGenerator(rand, this);
         Floor newFloor = generator.generate(floors.size() + 1);
         floors.add(newFloor);
         return newFloor;
@@ -86,12 +86,21 @@ public class Dungeon {
         return output;
     }
 
-    public GameCommandOutput ascend(String username) {
+    public GameCommandOutput descend(String username) {
         GameCommandOutput output = new GameCommandOutput(username, "Ascended!", true);
         GameUser gameUser = currentUsers.get(username);
         Room roomToRemove = gameUser.currentRoom;
-        //Room roomToMove = this.floors.get(this.floors.size() -1 );
-        return null;
+        gameUser.currentFloorNum++;
+        Floor floor = floors.get(gameUser.currentFloorNum);
+
+        gameUser.currentRoom = floor.getEntrance();
+        gameUser.currentRoom.addUser(gameUser);
+        roomToRemove.removeUser(gameUser);
+
+        output.room = gameUser.currentRoom;
+        output.floor = floor;
+
+        return output;
     }
 
     public GameCommandOutput attack(String username, String target) {

@@ -9,7 +9,7 @@ public enum Command {
     MOVE(".move"),
     ATTACK(".fight", ".attack"),
     LOOK(".look"),
-    ASCEND(".ascend");
+    DESCEND(".descend");
 
 
     public final String[] names;

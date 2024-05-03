@@ -8,15 +8,17 @@ public class RoomGenerator {
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
   private SpawnWheel<Boss> bossWheel;
+  private Dungeon dungeon;
   int createdRooms = 0;
 
   protected RoomGenerator(long seed, SpawnWheel<Item> itemWheel, SpawnWheel<Entity> entityWheel,
-      SpawnWheel<Boss> bossWheel) {
+      SpawnWheel<Boss> bossWheel, Dungeon dungeon) {
     this.seed = seed;
     this.itemWheel = itemWheel;
     this.entityWheel = entityWheel;
     this.bossWheel = bossWheel;
     rand = new Random(this.seed);
+    this.dungeon = dungeon;
   }
 
   protected Room generate() {
@@ -41,13 +43,14 @@ public class RoomGenerator {
   }
 
   protected BossRoom generateBossRoom() {
-    BossRoom room = new BossRoom();
+    BossRoom room = new BossRoom(dungeon);
     room.roomNumber = createdRooms++;
 
     Boss boss = bossWheel.spinWheelAndMake();
 
     room.addEntity(boss);
     room.boss = boss;
+    boss.setRoom(room);
 
     return room;
   }

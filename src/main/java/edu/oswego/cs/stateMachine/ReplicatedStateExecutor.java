@@ -4,7 +4,6 @@ import edu.oswego.cs.client.Command;
 import edu.oswego.cs.dungeon.Dungeon;
 import edu.oswego.cs.dungeon.Floor;
 import edu.oswego.cs.dungeon.GameUser;
-import edu.oswego.cs.dungeon.Room;
 import edu.oswego.cs.game.Action;
 import edu.oswego.cs.game.GameCommandOutput;
 import edu.oswego.cs.gui.MainFrame;
@@ -16,7 +15,6 @@ import edu.oswego.cs.raft.Session;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -81,8 +79,22 @@ public class ReplicatedStateExecutor extends Thread {
                                 output = dungeon.attack(action.getUserName(), brokenDownCommand[1]);
                                 mainFrame.addMessage(output.textOutput);
                                 break;
-                            case ASCEND:
-                                output = dungeon.ascend(action.getUserName());
+                            case DESCEND:
+                                output = dungeon.descend(action.getUserName());
+
+                                if(output.successful) {
+                                    if(clientUsername.equals(action.getUserName())) {
+                                        currentFloor = output.floor;
+                                        mainFrame.updateMapOutput(output.floor);
+                                        mainFrame.addMessage("You have descended to Floor " +  user.currentFloorNum);
+                                        mainFrame.addMessage("Current room: " + user.currentRoom.prettyRoomNumber());
+                                        mainFrame.listRoomEnemies(clientUsername, false);
+                                    } else {
+                                        GameUser activeUser = dungeon.currentUsers.get(action.getUserName());
+                                        mainFrame.addMessage("User " + activeUser.username + " has descended to Floor " + activeUser.currentFloorNum + "!");
+                                    }
+
+                                }
                                 break;
                         }
                     //vvvv  NO TOUCH  vvvvv
