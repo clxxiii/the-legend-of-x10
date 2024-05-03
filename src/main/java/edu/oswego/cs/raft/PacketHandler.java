@@ -175,6 +175,9 @@ public class PacketHandler extends Thread {
                     // add user to log
                     String command = RaftAdministrationCommand.ADD_MEMBER.name + " " + connectPacket.username + " " + System.nanoTime() + " " + socketAddr.toString().replace("/", "");
                     raft.addToRaftQueue(command);
+                } else if (raft.userIsReconnecting(connectPacket.username)) {
+                    String command = RaftAdministrationCommand.RECONNECT.name + " " + connectPacket.username;
+                    raft.addToRaftQueue(command);
                 }
                 // tell client to log that the raft session is active
                 ConnectPacket responsePacket = new ConnectPacket(ConnectSubopcode.Log, serverUsername, new byte[0]);
