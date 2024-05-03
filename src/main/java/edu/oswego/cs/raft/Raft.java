@@ -137,9 +137,6 @@ public class Raft {
 
    public void addSession(String username, Session session) {
       // only add a user if they don't exist in the map
-      System.out.println(clientCount.incrementAndGet());
-      System.out.println(username);
-      System.out.println(session.getSocketAddress());
       Session userSession = sessionMap.putIfAbsent(username, session);
       if (userSession != null && userSession.getMembershipState() == RaftMembershipState.PENDING_FOLLOWER) {
          userSession.setLMRSTINT(System.nanoTime());
@@ -360,7 +357,6 @@ public class Raft {
                }
             }
             if (runElection) {
-               System.out.println("Run an election");
                runElection();
             }
          }
