@@ -137,6 +137,34 @@ public class Dungeon {
     }
 
     public GameCommandOutput pickup(String username, String target) {
-        return new GameCommandOutput(username, target, false);
+        GameCommandOutput output = new GameCommandOutput(username, "", false);
+
+        GameUser gameUser = currentUsers.get(username);
+        if (gameUser.currentRoom.items.isEmpty()) {
+            output.textOutput = "Nothing here to pickup!";
+            return output;
+        }
+
+        List<Item> itemList = gameUser.currentRoom.items;
+        Item item = null;
+        for (int i = 0; i < itemList.size(); i++) {
+            if (itemList.get(i).name.equalsIgnoreCase(target)) {
+                item = itemList.get(i);
+                break;
+            }
+        }
+
+        if (item == null) {
+            output.textOutput = "Specified item is not in the room!";
+            return output;
+        }
+
+        gameUser.inventory.add(item);
+        itemList.remove(item);
+
+        output.textOutput = "You picked up the " + item.name;
+        output.successful = true;
+
+        return output;
     }
 }

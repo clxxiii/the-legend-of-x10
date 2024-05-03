@@ -100,6 +100,9 @@ public class ReplicatedStateExecutor extends Thread {
                                 break;
                             case PICKUP:
                                 output = dungeon.pickup(action.getUserName(), brokenDownCommand[1]);
+                                if (output.username.equals(clientUsername)) {
+                                    mainFrame.addMessage(output.textOutput);
+                                }
                                 break;
                         }
                     //vvvv  NO TOUCH  vvvvv
