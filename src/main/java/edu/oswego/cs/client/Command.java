@@ -7,6 +7,7 @@ public enum Command {
     EXIT(".exit", ".leave", ".quit"),
     CHAT(".chat"),
     MOVE(".move"),
+    PICKUP(".pickup", ".grab"),
     ATTACK(".fight", ".attack"),
     LOOK(".look"),
     DESCEND(".descend");
