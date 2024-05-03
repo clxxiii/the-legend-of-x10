@@ -34,7 +34,7 @@ public class FloorGenerator {
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
     bossWheel = new SpawnWheel<Boss>(Boss.class, floorNum, rand.nextLong());
-    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel, bossWheel, dungeon);
+    roomGen = new RoomGenerator(rand, itemWheel, entityWheel, bossWheel, dungeon);
 
     Floor floor = new Floor(dungeon);
 

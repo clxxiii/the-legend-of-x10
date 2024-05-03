@@ -3,7 +3,6 @@ package edu.oswego.cs.dungeon;
 import java.util.Random;
 
 public class RoomGenerator {
-  private long seed;
   private Random rand;
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
@@ -11,13 +10,12 @@ public class RoomGenerator {
   private Dungeon dungeon;
   int createdRooms = 0;
 
-  protected RoomGenerator(long seed, SpawnWheel<Item> itemWheel, SpawnWheel<Entity> entityWheel,
+  protected RoomGenerator(Random rand, SpawnWheel<Item> itemWheel, SpawnWheel<Entity> entityWheel,
       SpawnWheel<Boss> bossWheel, Dungeon dungeon) {
-    this.seed = seed;
+    this.rand = rand;
     this.itemWheel = itemWheel;
     this.entityWheel = entityWheel;
     this.bossWheel = bossWheel;
-    rand = new Random(this.seed);
     this.dungeon = dungeon;
   }
 
