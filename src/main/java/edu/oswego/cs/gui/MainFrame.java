@@ -22,7 +22,7 @@ public class MainFrame extends JFrame {
     private Raft raft;
     public Floor currentFloor;
     public Room currentRoom;
-    public String username;
+    public GameUser user;
 
     public MainFrame() { }
 
@@ -31,10 +31,11 @@ public class MainFrame extends JFrame {
     }
 
     //TODO: Have room now, don't need roomNumber
-    public void initialize(String username, String roomNumber, Floor currentFloor) {
+    public void initialize(GameUser user, String roomNumber, Floor currentFloor) {
         this.currentFloor = currentFloor;
         this.currentRoom = currentFloor.getEntrance();
-        this.username = username;
+
+        this.user = user;
         setTitle("The Legend of X10");
 
 
@@ -63,7 +64,7 @@ public class MainFrame extends JFrame {
         DefaultCaret caret = (DefaultCaret)outputText.getCaret();
         caret.setUpdatePolicy(DefaultCaret.OUT_BOTTOM);
 
-        messages.add("Welcome to the dungeon, " + this.username + "!");
+        messages.add("Welcome to the dungeon, " + this.user.username + "!");
         messages.add("Current room: " + roomNumber + "!");
 
         updateOutputBox();
@@ -147,6 +148,15 @@ public class MainFrame extends JFrame {
 
             if (optionalCommand.isPresent()) {
                 Command command = optionalCommand.get();
+
+
+                if(user.isDead() && !(command.equals(Command.CHAT) || command.equals(Command.EXIT))) {
+                    addMessage("You are dead!  Can't do that!");
+                    inputField.setText("");
+                    updateOutputBox();
+                    return;
+                }
+
                 switch (command) {
                     case CHAT:
                         if (chunked.length == 1) {
@@ -180,7 +190,7 @@ public class MainFrame extends JFrame {
                         raft.sendMessage(inputText);
                         break;
                     case LOOK:
-                        listRoomEnemies(username, true);
+                        listRoomEnemies(user.username, true);
                         listRoomItems();
                         break;
                     case DESCEND:
