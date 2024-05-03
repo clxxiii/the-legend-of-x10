@@ -154,43 +154,6 @@ public class Encryption {
         return null;
     }
 
-    public static void main( String[] args) throws Exception {
-        Security.setProperty("crypto.policy", "unlimited");
-
-        final Encryption agent1 = new Encryption();
-        final Encryption agent2 = new Encryption();
-
-        //Both generate their own sets of RSA keys
-        agent1.generateKeys();
-        agent2.generateKeys();
-
-        //Agent 1 generates the AES secret key
-        agent1.generateSecretKey();
-
-        //We get Agent 2's public key, so Agent 1 encrypts the secret key with it
-        PublicKey receivedKey = agent2.getPublicKey();
-        byte[] encryptedMessage = agent1.encryptSecretKeyWithPublicKey(receivedKey);
-
-        //Agent 2 receives the encrypted secret key, so it decrypts it
-        byte[] receivedSecret = agent2.decryptMessageWithPrivateKey(encryptedMessage);
-
-        //Set Agent 2's secret key
-        agent2.secretKey = new SecretKeySpec(receivedSecret, 0, receivedSecret.length, "AES");
-
-        String payload = "Look at me still talking when there's science to do...";
-        System.out.println("Payload: " + payload);
-        System.out.println("Payload bytes: " + Arrays.toString(payload.getBytes()));
-
-        //Agent 2 encrypts message with the secret key
-        byte[] encryptedString = agent2.encryptMessageWithSecretKey(payload.getBytes());
-        System.out.println("Encrypted string: " + Arrays.toString(encryptedString));
-
-        //Agent 1 is able to decrypt with the secret key
-        byte[] decryptedBytes = agent1.decryptMessageWithSecretKey(encryptedString);
-        System.out.println("Decrypted bytes: " + Arrays.toString(decryptedBytes));
-        System.out.println("Decrypted string: " + new String(decryptedBytes));
-    }
-
     public void setSecretKey(SecretKey secretKey) {
         this.secretKey = secretKey;
     }
