@@ -10,6 +10,7 @@ public enum Command {
     PICKUP(".pickup", ".grab"),
     ATTACK(".fight", ".attack"),
     LOOK(".look"),
+    USE(".use"),
     DESCEND(".descend");
 
 

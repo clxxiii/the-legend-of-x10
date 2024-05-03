@@ -112,6 +112,29 @@ public class Dungeon {
         return output;
     }
 
+    public GameCommandOutput use(String username, String target) {
+        GameUser gameUser = currentUsers.get(username);
+
+        if (gameUser.inventory.isEmpty()) {
+            return new GameCommandOutput(username, "Your inventory is empty!", false);
+        }
+
+        List<Item> inventory = gameUser.inventory;
+        Item item = null;
+        for (int i = 0; i < inventory.size(); i++) {
+            if (inventory.get(i).name.equalsIgnoreCase(target)) {
+                item = inventory.get(i);
+                break;
+            }
+        }
+
+        if (item == null) {
+            return new GameCommandOutput(username, "You don't have that item!", false);
+        }
+
+        return item.use(this, gameUser);
+    }
+
     public GameCommandOutput attack(String username, String target) {
         GameCommandOutput output = new GameCommandOutput(username, "", false);
 

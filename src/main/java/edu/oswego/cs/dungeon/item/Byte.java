@@ -2,10 +2,10 @@ package edu.oswego.cs.dungeon.item;
 
 import edu.oswego.cs.dungeon.Item;
 
-public class Packet extends Item {
+public class Byte extends Item {
 
-  public Packet() {
-    this.name = "Packet";
+  public Byte() {
+    this.name = "Byte";
   }
 
   public static int getSpawnOdds(int floor) {

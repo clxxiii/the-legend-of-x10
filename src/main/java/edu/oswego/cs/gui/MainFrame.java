@@ -200,6 +200,8 @@ public class MainFrame extends JFrame {
 
                         raft.sendMessage(inputText);
                         break;
+                    case USE:
+                        raft.sendMessage(inputText);
                     default:
                         messages.add("Didn't understand that!");
                         break;
