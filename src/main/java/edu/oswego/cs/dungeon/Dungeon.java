@@ -24,6 +24,7 @@ public class Dungeon {
         floors = new ArrayList<>();
         this.seed = seed;
         this.rand = new Random(seed);
+        System.out.println("Dungeon Seed: " + this.seed);
     }
 
     public Floor makeFloor() {
