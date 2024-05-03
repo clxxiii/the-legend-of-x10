@@ -244,7 +244,7 @@ public class MainFrame extends JFrame {
     }
 
     public void listRoomItems() {
-        if(this.currentRoom.entities.isEmpty()) {
+        if(this.currentRoom.items.isEmpty()) {
             addMessage("There is nothing to see here.");
             return;
         }
