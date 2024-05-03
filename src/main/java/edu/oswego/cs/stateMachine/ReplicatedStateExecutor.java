@@ -74,7 +74,7 @@ public class ReplicatedStateExecutor extends Thread {
                                     mainFrame.currentRoom = output.room;
                                     mainFrame.addMessage(output.textOutput);
                                     if(output.successful) mainFrame.listRoomEnemies(clientUsername, false);
-                                } else if(output.room.users.containsKey(user.username)) {
+                                } else if(output.successful && output.room.users.containsKey(user.username)) {
                                     mainFrame.addMessage(output.username + " has entered the room.");
                                 }
                                 break;
