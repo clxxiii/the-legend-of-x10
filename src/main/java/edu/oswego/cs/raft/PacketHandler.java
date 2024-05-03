@@ -107,7 +107,7 @@ public class PacketHandler extends Thread {
             }
         } catch (ParseException e) {
             // Packet parsing exception thrown, ignore the packet
-            System.out.println("Packet parsing exception thrown.");
+            System.err.println("Packet parsing exception thrown.");
         }
 
     }
@@ -346,12 +346,10 @@ public class PacketHandler extends Thread {
         if (candidatePacket.termCount > raft.getTermNum() && candidatePacket.logPosition >= raft.getLogPosition()) {
             // change to follower
             boolean success = transformToFollower(candidatePacket.username, socketAddress, candidatePacket.termCount);
-            System.out.println(success);
             if (success) {
                 // send vote
                 VotePacket votePacket = new VotePacket(serverUsername, raft.getTermNum());
                 sendPacket(votePacket.packetToBytes(), socketAddress);
-                System.out.println(socketAddress);
             }
         }
     }
