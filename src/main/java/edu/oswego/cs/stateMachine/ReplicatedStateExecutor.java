@@ -73,8 +73,8 @@ public class ReplicatedStateExecutor extends Thread {
                                 if (output.username.equals(clientUsername)) {
                                     mainFrame.currentRoom = output.room;
                                     mainFrame.addMessage(output.textOutput);
-                                    mainFrame.listRoomEnemies(clientUsername);
-                                } else if(output.room.users.containsKey(user.username)) {
+                                    if(output.successful) mainFrame.listRoomEnemies(clientUsername, false);
+                                } else if(output.successful && output.room.users.containsKey(user.username)) {
                                     mainFrame.addMessage(output.username + " has entered the room.");
                                 }
                                 break;
@@ -94,7 +94,8 @@ public class ReplicatedStateExecutor extends Thread {
                             switch (raftAdministrationCommand) {
                                 case ADD_MEMBER:
                                     String username = handleAddMember(brokenDownCommand[1]);
-                                    dungeon.addUser(new GameUser(firstFloor.getEntrance(), username));
+                                    if(!clientUsername.equals(username)) dungeon.addUser(new GameUser(firstFloor.getEntrance(), username));
+
                                     mainFrame.addMessage("Joined: " + username);
                                     break;
                                 case SEED_DUNGEON:
@@ -146,6 +147,7 @@ public class ReplicatedStateExecutor extends Thread {
         this.dungeon = new Dungeon(seed);
         this.firstFloor = currentFloor = dungeon.makeFloor();
         user = new GameUser(currentFloor.getEntrance(), clientUsername);
+
         this.dungeon.addUser(user);
         mainFrame.initialize(user.username, user.getRoomNumber(), currentFloor);
     }

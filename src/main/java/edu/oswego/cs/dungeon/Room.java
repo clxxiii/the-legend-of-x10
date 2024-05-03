@@ -38,7 +38,10 @@ public class Room {
     entities.add(e);
   }
 
-  public void addUser(GameUser user) { users.put(user.username, user); }
+  public void addUser(GameUser user) {
+    if(users.containsKey(user.username)) return;
+    users.put(user.username, user);
+  }
 
   public void removeUser(GameUser user) { users.remove(user.username); }
 

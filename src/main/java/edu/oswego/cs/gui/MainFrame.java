@@ -21,6 +21,7 @@ public class MainFrame extends JFrame {
     private Raft raft;
     public Floor currentFloor;
     public Room currentRoom;
+    public String username;
 
     public MainFrame() { }
 
@@ -32,6 +33,7 @@ public class MainFrame extends JFrame {
     public void initialize(String username, String roomNumber, Floor currentFloor) {
         this.currentFloor = currentFloor;
         this.currentRoom = currentFloor.getEntrance();
+        this.username = username;
         setTitle("The Legend of X10");
 
 
@@ -57,7 +59,7 @@ public class MainFrame extends JFrame {
         outputText.setLineWrap(true);
         outputText.setEditable(false);
 
-        messages.add("Welcome to the dungeon, " + username + "!");
+        messages.add("Welcome to the dungeon, " + this.username + "!");
         messages.add("Current room: " + roomNumber + "!");
 
         updateOutputBox();
@@ -174,8 +176,8 @@ public class MainFrame extends JFrame {
                         raft.sendMessage(inputText);
                         break;
                     case LOOK:
-
-
+                        listRoomEnemies(username, true);
+                        listRoomItems();
                         break;
                     case ASCEND:
                         if(!currentRoom.isBossRoom()){
@@ -220,7 +222,12 @@ public class MainFrame extends JFrame {
         mapOutput.setText(floor.toString());
     }
 
-    public void listRoomEnemies(String username) {
+    public void listRoomEnemies(String username, boolean isLook) {
+
+        if(currentRoom.entities.isEmpty() && this.currentRoom.users.size() == 1 && isLook) {
+            addMessage("Nobody here...");
+            return;
+        }
 
         for(Entity entity: this.currentRoom.entities) {
             if(entity.isDead()) continue;
@@ -233,6 +240,17 @@ public class MainFrame extends JFrame {
             } else if(!user.username.equals(username)) {
                 addMessage(user.username + " is in the room.");
             }
+        }
+    }
+
+    public void listRoomItems() {
+        if(this.currentRoom.items.isEmpty()) {
+            addMessage("There is nothing to see here.");
+            return;
+        }
+
+        for(Item item: this.currentRoom.items) {
+            addMessage("Item in room! " + item.name + " available.");
         }
     }
 
