@@ -58,26 +58,21 @@ public class FloorGenerator {
 
     // [N, E, S, W]
     int[] odds = getGenerationOdds();
-    boolean connected = false;
     if (random(odds[0])) {
       makeRoom(ExitEnum.NORTH, current);
-      connected = true;
     }
     if (random(odds[1])) {
       makeRoom(ExitEnum.EAST, current);
-      connected = true;
     }
     if (random(odds[2])) {
       makeRoom(ExitEnum.SOUTH, current);
-      connected = true;
     }
     if (random(odds[3])) {
       makeRoom(ExitEnum.WEST, current);
-      connected = true;
     }
 
-    while (!connected) {
-      connected = makeRoom(ExitEnum.random(rand), current);
+    while (leaves.isEmpty()) {
+      makeRoom(ExitEnum.random(rand), current);
     }
   }
 
