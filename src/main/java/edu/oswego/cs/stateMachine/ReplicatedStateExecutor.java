@@ -98,6 +98,10 @@ public class ReplicatedStateExecutor extends Thread {
                                         mainFrame.addMessage("User " + activeUser.username + " has descended to Floor " + activeUser.currentFloorNum + "!");
                                     }
 
+                                } else {
+                                    if(output.username.equals(clientUsername)) {
+                                        mainFrame.addMessage(output.textOutput);
+                                    }
                                 }
                                 break;
                             case PICKUP:

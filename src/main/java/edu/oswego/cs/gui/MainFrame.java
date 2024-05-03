@@ -5,6 +5,7 @@ import edu.oswego.cs.dungeon.*;
 import edu.oswego.cs.raft.Raft;
 
 import javax.swing.*;
+import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
@@ -58,6 +59,9 @@ public class MainFrame extends JFrame {
         outputText = new JTextArea( 30, 40);
         outputText.setLineWrap(true);
         outputText.setEditable(false);
+
+        DefaultCaret caret = (DefaultCaret)outputText.getCaret();
+        caret.setUpdatePolicy(DefaultCaret.OUT_BOTTOM);
 
         messages.add("Welcome to the dungeon, " + this.username + "!");
         messages.add("Current room: " + roomNumber + "!");

@@ -89,6 +89,14 @@ public class Dungeon {
     public GameCommandOutput descend(String username) {
         GameCommandOutput output = new GameCommandOutput(username, "Descended!", true);
         GameUser gameUser = currentUsers.get(username);
+
+        if(!gameUser.currentRoom.entities.get(0).isDead()) {
+            output.textOutput = "Boss isn't dead yet!";
+            output.successful = false;
+            output.username = gameUser.username;
+            return output;
+        }
+
         Room roomToRemove = gameUser.currentRoom;
         gameUser.currentFloorNum++;
         Floor floor = floors.get(gameUser.currentFloorNum);
