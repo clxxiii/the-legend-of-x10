@@ -135,6 +135,7 @@ public class MainFrame extends JFrame {
         public void actionPerformed(ActionEvent actionEvent) {
 
             String inputText = inputField.getText();
+            addMessage("\n>> " + inputText + "\n");
 
             if(inputText.isEmpty()) return;
             if(raft == null) {
