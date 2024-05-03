@@ -17,6 +17,10 @@ public class Entity extends Spawnable implements Fightable {
 
   protected void setHp(int hp) { this.hp = hp; }
 
+  public int getDmg() { return damage; }
+
+  protected void setDmg(int dmg) { damage = dmg; }
+
   /**
    * Check if player's dead.
    * @return True if HP is 0, false otherwise.
