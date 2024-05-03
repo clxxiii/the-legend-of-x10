@@ -76,19 +76,25 @@ public class FloorGenerator {
       connected = true;
     }
 
-    if (!connected) {
-      makeRoom(ExitEnum.random(rand), current);
+    while (!connected) {
+      connected = makeRoom(ExitEnum.random(rand), current);
     }
   }
 
-  private void makeRoom(ExitEnum exit, Room connectedRoom) {
+  /**
+   * Creates a new room, or connects an existing room
+   * @param exit
+   * @param connectedRoom
+   * @return A boolean, for whether a new room was created & added to the leaves
+   */
+  private boolean makeRoom(ExitEnum exit, Room connectedRoom) {
     int newX = connectedRoom.xPos + exit.x;
     int newY = connectedRoom.yPos + exit.y;
 
     if (map.containsKey(newX + "," + newY)) {
       // Flip a coin, if heads, link the two rooms.
       if (random(0))
-        return;
+        return false;
       Room otherRoom = map.get(newX + "," + newY);
       int xDiff = otherRoom.xPos - connectedRoom.xPos;
       int yDiff = otherRoom.yPos - connectedRoom.yPos;
@@ -108,7 +114,7 @@ public class FloorGenerator {
         connectedRoom.southExit = otherRoom;
         otherRoom.northExit = connectedRoom;
       }
-      return;
+      return false;
     }
 
     Room room;
@@ -140,6 +146,7 @@ public class FloorGenerator {
         break;
     }
     roomsToMake--;
+    return true;
   }
 
   private int getNumberOfRooms() {
