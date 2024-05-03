@@ -126,4 +126,8 @@ public class Dungeon {
         }
         return output;
     }
+
+    public GameCommandOutput pickup(String username, String target) {
+        return new GameCommandOutput(username, target, false);
+    }
 }
