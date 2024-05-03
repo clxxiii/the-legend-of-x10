@@ -23,6 +23,8 @@ public class GameUser implements Fightable{
      */
     private int hp = 100;
 
+    public int currentFloorNum = 0;
+
     /**
      * Amount of damage the user deals.
      */

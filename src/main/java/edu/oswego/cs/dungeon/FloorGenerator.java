@@ -8,6 +8,7 @@ public class FloorGenerator {
   private final Random rand;
   private RoomGenerator roomGen;
 
+  private Dungeon dungeon;
   private SpawnWheel<Item> itemWheel;
   private SpawnWheel<Entity> entityWheel;
   private SpawnWheel<Boss> bossWheel;
@@ -18,8 +19,9 @@ public class FloorGenerator {
 
   private int roomsToMake = 0;
 
-  public FloorGenerator(Random rand) {
+  public FloorGenerator(Random rand, Dungeon dungeon) {
     this.rand = rand;
+    this.dungeon = dungeon;
   }
 
   public Floor generate(int floorNum) {
@@ -32,9 +34,9 @@ public class FloorGenerator {
     itemWheel = new SpawnWheel<Item>(Item.class, floorNum, rand.nextLong());
     entityWheel = new SpawnWheel<Entity>(Entity.class, floorNum, rand.nextLong());
     bossWheel = new SpawnWheel<Boss>(Boss.class, floorNum, rand.nextLong());
-    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel, bossWheel);
+    roomGen = new RoomGenerator(rand.nextLong(), itemWheel, entityWheel, bossWheel, dungeon);
 
-    Floor floor = new Floor();
+    Floor floor = new Floor(dungeon);
 
     Room startingRoom = roomGen.generate();
     floor.entryPoint = startingRoom;
