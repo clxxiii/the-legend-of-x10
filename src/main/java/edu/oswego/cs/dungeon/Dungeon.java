@@ -158,12 +158,14 @@ public class Dungeon {
             return output;
         }
 
+        output.room = gameUser.currentRoom;
+
         entity.attacked(gameUser.getAttackPower());
         output.successful = true;
         if (entity.isDead()) {
-            output.textOutput = "You hit and killed " + entity.name + "!";
+            output.textOutput = username + " hit and killed " + entity.name + "!";
         } else {
-            output.textOutput = "You hit " + entity.name + "! It has " + entity.getHp() + " HP remaining.";
+            output.textOutput = username + " hit " + entity.name + "! It has " + entity.getHp() + " HP remaining.";
 
             gameUser.attacked(entity.getDmg());
             output.textOutput += "\n" + entity.name + "attacked back for " + entity.getDmg() + " damage.";

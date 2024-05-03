@@ -83,7 +83,7 @@ public class ReplicatedStateExecutor extends Thread {
                                 }
                             case ATTACK:
                                 output = dungeon.attack(action.getUserName(), brokenDownCommand[1]);
-                                if (output.username.equals(clientUsername)) {
+                                if (output.room.equals(user.currentRoom)) {
                                     mainFrame.addMessage(output.textOutput);
                                 }
                                 break;
@@ -96,6 +96,7 @@ public class ReplicatedStateExecutor extends Thread {
                                         mainFrame.updateMapOutput(output.floor);
                                         mainFrame.addMessage("You have descended to Floor " +  user.currentFloorNum);
                                         mainFrame.addMessage("Current room: " + user.currentRoom.prettyRoomNumber());
+                                        mainFrame.user = user;
                                         mainFrame.currentRoom = output.room;
                                         mainFrame.currentFloor = output.floor;
                                         mainFrame.listRoomEnemies(clientUsername, false);
@@ -180,7 +181,7 @@ public class ReplicatedStateExecutor extends Thread {
         user = new GameUser(currentFloor.getEntrance(), clientUsername);
 
         this.dungeon.addUser(user);
-        mainFrame.initialize(user.username, user.getRoomNumber(), currentFloor);
+        mainFrame.initialize(user, user.getRoomNumber(), currentFloor);
     }
 
 }
