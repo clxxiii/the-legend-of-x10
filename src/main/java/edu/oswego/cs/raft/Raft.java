@@ -249,12 +249,12 @@ public class Raft {
    public boolean reconnectUser(String username) {
       Session session  = sessionMap.get(username);
       if (username.equals(clientUserName)) return true;
+      clientCount.incrementAndGet();
       if (session != null) {
          if (session.getMembershipState() == RaftMembershipState.DISCONNECTED) {
             session.setMembershipState(RaftMembershipState.DISCONNECTED, RaftMembershipState.FOLLOWER);
             session.setLMRSTINT(System.nanoTime());
             session.setTimedOut(false);
-            clientCount.incrementAndGet();
          }
       }
       return session != null;
@@ -376,7 +376,7 @@ public class Raft {
       voted.set(false);
       termCounter.incrementAndGet();
       sessionMap.get(clientUserName).setMembershipState(RaftMembershipState.FOLLOWER, RaftMembershipState.CANDIDATE);
-      if (userNameOfLeader != null) {
+      if (userNameOfLeader != null && raftSessionActive && !userNameOfLeader.equals(clientUserName)) {
          sessionMap.get(userNameOfLeader).setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
          queue.add(new Action(clientUserName, RaftAdministrationCommand.TIME_OUT_MEMBER.name + " " + userNameOfLeader));
          userNameOfLeader = null;
@@ -462,7 +462,6 @@ public class Raft {
          Session session = sessionMap.get(userNameOfLeader);
          if (session != null) {
             session.setMembershipState(RaftMembershipState.LEADER, RaftMembershipState.DISCONNECTED);
-            clientCount.decrementAndGet();
          }
       }
    }
@@ -491,7 +490,9 @@ public class Raft {
 
    public void timeOutUser(String username) {
       Session session = sessionMap.get(username);
-      if (username.equals(clientUserName)) return;
+      if (username.equals(clientUserName)) {
+         return;
+      }
       if (session != null) {
          session.setTimedOut(true);
          if (session.getMembershipState() == RaftMembershipState.FOLLOWER) {
