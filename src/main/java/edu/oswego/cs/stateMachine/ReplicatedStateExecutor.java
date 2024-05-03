@@ -97,11 +97,16 @@ public class ReplicatedStateExecutor extends Thread {
                                     dungeon.addUser(new GameUser(firstFloor.getEntrance(), username));
                                     mainFrame.addMessage("Joined: " + username);
                                     break;
-                                case SEED_DUNGEON: {
+                                case SEED_DUNGEON:
                                     long seed = Long.parseLong(brokenDownCommand[1]);
                                     startupDungeon(seed);
                                     break;
-                                }
+                                case TIME_OUT_MEMBER:
+                                    handleTimeout(brokenDownCommand[1]);
+                                    break;
+                                case RECONNECT:
+                                    reconnectUser(brokenDownCommand[1]);
+                                    break;
                             }
                         }
                     }
@@ -125,6 +130,16 @@ public class ReplicatedStateExecutor extends Thread {
         }
 
         return null;
+    }
+
+    public void handleTimeout(String username) {
+        raft.timeOutUser(username);
+        mainFrame.addMessage(username + " disconnected.");
+    }
+
+    public void reconnectUser(String username) {
+        raft.reconnectUser(username);
+        mainFrame.addMessage(username + " reconnected.");
     }
 
     public void startupDungeon(long seed) {
