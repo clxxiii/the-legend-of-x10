@@ -90,6 +90,8 @@ public class ReplicatedStateExecutor extends Thread {
                                         mainFrame.updateMapOutput(output.floor);
                                         mainFrame.addMessage("You have descended to Floor " +  user.currentFloorNum);
                                         mainFrame.addMessage("Current room: " + user.currentRoom.prettyRoomNumber());
+                                        mainFrame.currentRoom = output.room;
+                                        mainFrame.currentFloor = output.floor;
                                         mainFrame.listRoomEnemies(clientUsername, false);
                                     } else {
                                         GameUser activeUser = dungeon.currentUsers.get(action.getUserName());

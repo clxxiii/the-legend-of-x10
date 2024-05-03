@@ -87,7 +87,7 @@ public class Dungeon {
     }
 
     public GameCommandOutput descend(String username) {
-        GameCommandOutput output = new GameCommandOutput(username, "Ascended!", true);
+        GameCommandOutput output = new GameCommandOutput(username, "Descended!", true);
         GameUser gameUser = currentUsers.get(username);
         Room roomToRemove = gameUser.currentRoom;
         gameUser.currentFloorNum++;
