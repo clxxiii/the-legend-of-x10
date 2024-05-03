@@ -34,7 +34,6 @@ public class GameUser implements Fightable{
 
     public GameUser(Room currentRoom, String username) {
         this.currentRoom = currentRoom;
-        currentRoom.addUser(this);
         this.username = username;
     }
 
