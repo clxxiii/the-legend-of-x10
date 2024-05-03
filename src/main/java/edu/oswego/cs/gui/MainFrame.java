@@ -9,6 +9,7 @@ import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
 
 public class MainFrame extends JFrame {
@@ -65,7 +66,14 @@ public class MainFrame extends JFrame {
         caret.setUpdatePolicy(DefaultCaret.OUT_BOTTOM);
 
         messages.add("Welcome to the dungeon, " + this.user.username + "!");
-        messages.add("Current room: " + roomNumber + "!");
+        messages.add("You are on a quest to find the legendary X10 compiler.");
+        messages.add("Traverse the dungeon, fight the forces of Fortran and see if you can retrieve this relic!");
+        messages.add("\nAvailable commands:");
+
+        for(Command command: Arrays.asList(Command.values())) {
+            messages.add(Arrays.toString(command.names));
+        }
+        messages.add("\nCurrent room: " + roomNumber + "!");
 
         updateOutputBox();
 
@@ -135,6 +143,7 @@ public class MainFrame extends JFrame {
         public void actionPerformed(ActionEvent actionEvent) {
 
             String inputText = inputField.getText();
+            addMessage("\n>> " + inputText + "\n");
 
             if(inputText.isEmpty()) return;
             if(raft == null) {
