@@ -11,7 +11,8 @@ public class Item extends Spawnable {
   }
 
   public GameCommandOutput use(Dungeon dungeon, GameUser user) {
-    GameCommandOutput output = new GameCommandOutput(name, "You used the " + name + ", it did nothing.", false);
+    GameCommandOutput output = new GameCommandOutput(user.username, "You used the " + name + ", it did nothing.", false);
+    user.inventory.remove(this);
 
     return output;
   }
