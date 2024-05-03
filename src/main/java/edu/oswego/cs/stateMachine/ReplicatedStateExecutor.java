@@ -67,7 +67,6 @@ public class ReplicatedStateExecutor extends Thread {
                                 if (brokenDownCommand.length > 1) mainFrame.addMessage(action.getUserName() + ": " + brokenDownCommand[1]);
                                 break;
                             case MOVE:
-                                System.out.println(action.getUserName());
                                 output = dungeon.move(action.getUserName(), brokenDownCommand[1].charAt(0));
 
                                 if (output.username.equals(clientUsername)) {
