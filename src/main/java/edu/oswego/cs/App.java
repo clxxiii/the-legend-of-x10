@@ -20,9 +20,7 @@ public class App {
         }
 
         String clientUsername = map.get("username");
-        MainFrame mainFrame = new MainFrame();
-        Raft raft = new Raft(localPort, clientUsername, mainFrame);
-        mainFrame.setRaft(raft);
+        Raft raft = new Raft(localPort, clientUsername);
 
         if (map.get("action").equalsIgnoreCase("host")) {
             raft.startRaftGroup();
