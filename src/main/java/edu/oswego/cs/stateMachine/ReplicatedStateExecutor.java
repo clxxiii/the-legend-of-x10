@@ -33,6 +33,15 @@ public class ReplicatedStateExecutor extends Thread {
     private Floor firstFloor;
     private GameUser user;
 
+    /**
+     * Created a replicated state executor thread that is intended to be run by a raft instance and guarantee a log is executed in order.
+     * @param readOnlyLog A reference to log which is only to be read from.
+     * @param lastActionConfirmed An Atomic Integer that represents the last action that is safe to execute.
+     * @param gameActive An Atomic Boolean that allows the raft instance to gracefully shutdown the replicated state machine.
+     * @param raft A reference to the associated raft instance.
+     * @param mainFrame The gui connected to the raft instance.
+     * @param clientUsername The username of the user who is connected to the local raft instance.
+     */
     public ReplicatedStateExecutor(List<Action> readOnlyLog, AtomicInteger lastActionConfirmed, AtomicInteger lastActionExecuted, AtomicBoolean gameActive, Raft raft, MainFrame mainFrame, String clientUsername) {
         this.readOnlyLog = readOnlyLog;
         this.lastActionConfirmed = lastActionConfirmed;
