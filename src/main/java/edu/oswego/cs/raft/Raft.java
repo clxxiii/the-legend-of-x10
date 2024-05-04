@@ -42,7 +42,6 @@ public class Raft {
    private final Object logConfirmerObject = new Object();
    private final Object followerLogMaintainerObject = new Object();
    private final ConcurrentHashMap<Integer, Action> actionMap = new ConcurrentHashMap<>();
-   private final MainFrame mainFrame;
    private final Encryption encryption = new Encryption();
    private final AtomicInteger termCounter = new AtomicInteger(0);
    private final AtomicBoolean voted = new AtomicBoolean(false);
@@ -50,18 +49,28 @@ public class Raft {
    private final HashSet<String> voteSet = new HashSet<>();
    private final AtomicInteger clientCount = new AtomicInteger();
 
-   public Raft(int serverPort, String clientUserName, MainFrame mainFrame) throws SocketException {
+   /**
+    * Creates a raft server instance that hasn't been started yet.
+    * @param serverPort The designated port for sending/receiving messages.
+    * @param clientUserName The username of the user who will be connected to this raft instance.
+    * @throws SocketException
+    */
+   public Raft(int serverPort, String clientUserName) throws SocketException {
       serverSocket = new DatagramSocket(serverPort);
       encryption.generateKeys();
       raftSessionActive = false;
       lastActionConfirmed = new AtomicInteger(-1);
+      MainFrame mainFrame = new MainFrame();
+      mainFrame.setRaft(this);
       rsm = new ReplicatedStateMachine(log, lastActionConfirmed, gameActive, this, mainFrame, clientUserName);
       this.clientUserName = clientUserName;
       raftReceiver = new RaftReceiver(serverSocket, keepReceiving, this, clientUserName, logConfirmerObject, actionMap, followerLogMaintainerObject, log, encryption);
-      this.mainFrame = mainFrame;
       raftReceiver.start();
    }
 
+   /**
+    * Starts up a Leader's Heartbeat that sends either heartbeat packets or command packets (if commands are queued up) every 10ms.
+    */
    public void startHeartBeat() {
       heartBeatTimer = new Timer();
       TimerTask task = new TimerTask() {
@@ -105,10 +114,16 @@ public class Raft {
       heartBeatTimer.schedule(task, 0, periodInMS);
    }
 
+   /**
+    * Stops the heartbeat timer.
+    */
    public void stopHeartBeat() {
       heartBeatTimer.cancel();
    }
 
+   /**
+    * Starts a follower timeout for the leader. The timeout is checked every 300ms with the timeout threshold being 200ms.
+    */
    public void startTimeoutTimer() {
       timeoutTimer = new Timer();
       TimerTask task = new TimerTask() {
@@ -131,10 +146,18 @@ public class Raft {
       timeoutTimer.schedule(task, periodInMS, periodInMS);
    }
 
+   /**
+    * Stops Leader's follower timeout.
+    */
    public void stopTimeout() {
       timeoutTimer.cancel();
    }
 
+   /**
+    * Adds a new session to the sessionMap if absent or updates an existing pending follower to a follower.
+    * @param username The username of who was added to the raft session.
+    * @param session The session associated with the user to be added.
+    */
    public void addSession(String username, Session session) {
       // only add a user if they don't exist in the map
       Session userSession = sessionMap.putIfAbsent(username, session);
@@ -145,6 +168,9 @@ public class Raft {
       clientCount.incrementAndGet();
    }
 
+   /**
+    * Starts a raft group and promotes the raft instance to a leader. Actions for seed generation and user addition (adding its own instance) are added to the queue.
+    */
    public void startRaftGroup() {
       encryption.generateSecretKey();
       raftMembershipState.set(RaftMembershipState.LEADER);
@@ -160,6 +186,9 @@ public class Raft {
       rsm.start();
    }
 
+   /**
+    * Ensures all timers and threads are gracefully stopped before the program exits.
+    */
    public void exitRaft() {
       stopHeartBeat();
       stopTimeout();
@@ -176,6 +205,10 @@ public class Raft {
       rsm.stop();
    }
 
+   /**
+    * Joins a raft group and initializes the raft member to a follower.
+    * @param groupAddress The target address of the group (can be a follower's address)
+    */
    public void joinRaftGroup(SocketAddress groupAddress) {
       try {
          raftMembershipState.set(RaftMembershipState.FOLLOWER);
@@ -191,6 +224,10 @@ public class Raft {
       }
    }
 
+   /**
+    * Commits an action in the log allowing it to be executed.
+    * @param index The log index of the action to be committed.
+    */
    public void commitAction(int index) {
       while (true) {
          int lastConfirmedIndex = lastActionConfirmed.get();
@@ -214,6 +251,10 @@ public class Raft {
       }
    }
 
+   /**
+    * How commands/messages to the log are submitted. This method checks whether the raft instance is the leader or a follower and passes the command accordingly.
+    * @param command the string representation of a log command.
+    */
    public void sendMessage(String command) {
       // get leader and send message
       if (userNameOfLeader != null) {
@@ -246,6 +287,11 @@ public class Raft {
       return true;
    }
 
+   /**
+    * Reconnects the user (if previously disconnected)
+    * @param username The username of the previously disconnected user
+    * @return a boolean depicting whether a session actually existed corresponding to the user.
+    */
    public boolean reconnectUser(String username) {
       Session session  = sessionMap.get(username);
       if (username.equals(clientUserName)) return true;
@@ -312,6 +358,11 @@ public class Raft {
       return log.get(i);
    }
 
+   /**
+    * Updates a followers greatest confirmed action. This method enables the leader to know when to commit log indices.
+    * @param username
+    * @param actionNum
+    */
    public void updateRaftFollowerGreatestConfirmedAction(String username, int actionNum) {
       Session session = sessionMap.get(username);
       if (session != null && session.getMembershipState() == RaftMembershipState.FOLLOWER) {
@@ -330,6 +381,11 @@ public class Raft {
       return log.size() - 1;
    }
 
+   /**
+    * Encrypts and sends a message.
+    * @param bytes packet bytes to be sent.
+    * @param socketAddress the target address.
+    */
    public void sendPacket(byte[] bytes, SocketAddress socketAddress) {
       byte[] encryptedBytes = encryption.encryptMessageWithSecretKey(bytes);
       if (encryptedBytes != null) {
@@ -341,6 +397,10 @@ public class Raft {
       }
    }
 
+   /**
+    * Starts the election timer which checks between every 150 ms and 350 ms for a leader timeout. Timeout rng is used to avoid
+    * ties.
+    */
    public void startElectionTimeout() {
       electionTimeoutTimer = new Timer();
       long timeOut = (new Random()).longs(300_000_000L, 500_000_000L).findFirst().getAsLong();
@@ -371,6 +431,9 @@ public class Raft {
       electionTimeoutTimer.cancel();
    }
 
+   /**
+    * Upgrades a follower to the candidate status. Removes follower functionality and causes the raft instance to enter a candidate mode.
+    */
    public void convertToCandidate() {
       raftMembershipState.set(RaftMembershipState.CANDIDATE);
       voted.set(false);
@@ -387,6 +450,9 @@ public class Raft {
       }
    }
 
+   /**
+    * Converts a candidate raft instance to leader raft instance. A heartbeat and client timeout is started.
+    */
    public void convertToLeader() {
       raftMembershipState.set(RaftMembershipState.LEADER);
       sessionMap.get(clientUserName).setMembershipState(RaftMembershipState.CANDIDATE, RaftMembershipState.LEADER);
@@ -396,6 +462,9 @@ public class Raft {
       (new RaftLogConfirmer(logConfirmerObject, sessionMap, lastActionConfirmed, gameActive, clientUserName, serverSocket, log)).start();
    }
 
+   /**
+    * Converts a candidate back to a follower. Accounts for cases where multiple candidates existed simultaneously.
+    */
    public void convertToFollower() {
       if (raftMembershipState.get() == RaftMembershipState.CANDIDATE) {
          raftMembershipState.set(RaftMembershipState.FOLLOWER);
@@ -404,6 +473,9 @@ public class Raft {
       }
    }
 
+   /**
+    * Sends out candidate packets to all of the followers.
+    */
    public void sendOutCandidatePackets() {
       CandidatePacket candidatePacket = new CandidatePacket(clientUserName, termCounter.get(), getLogPosition());
       byte[] packetBytes = candidatePacket.packetToBytes();
@@ -423,6 +495,9 @@ public class Raft {
       });
    }
 
+   /**
+    * Runs an election where a Follower is converted to a candidate and a vote commences. Upon election failure another election is started with new rng.
+    */
    public void runElection() {
       convertToCandidate();
       stopElectionTimeout();

@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 
 public class RaftLogConfirmer extends Thread {
 
-    private final Object wakeyWakeyEggsAndBakey;
+    private final Object raftLogConfirmerNotifier;
     private final ConcurrentHashMap<String, Session> sessionMap;
     private final AtomicInteger lastActionConfirmed;
     private final AtomicBoolean gameActive;
@@ -22,8 +22,8 @@ public class RaftLogConfirmer extends Thread {
     private final DatagramSocket datagramSocket;
     private final List<Action> log;
 
-    public RaftLogConfirmer(Object wakeyWakeyEggsAndBakey, ConcurrentHashMap<String, Session> sessionMap, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, String username, DatagramSocket datagramSocket, List<Action> log) {
-        this.wakeyWakeyEggsAndBakey = wakeyWakeyEggsAndBakey;
+    public RaftLogConfirmer(Object raftLogConfirmerNotifier, ConcurrentHashMap<String, Session> sessionMap, AtomicInteger lastActionConfirmed, AtomicBoolean gameActive, String username, DatagramSocket datagramSocket, List<Action> log) {
+        this.raftLogConfirmerNotifier = raftLogConfirmerNotifier;
         this.sessionMap = sessionMap;
         this.lastActionConfirmed = lastActionConfirmed;
         this.gameActive = gameActive;
@@ -36,8 +36,8 @@ public class RaftLogConfirmer extends Thread {
     public void run() {
         try {
             while (gameActive.get()) {
-                synchronized (wakeyWakeyEggsAndBakey) {
-                    wakeyWakeyEggsAndBakey.wait();
+                synchronized (raftLogConfirmerNotifier) {
+                    raftLogConfirmerNotifier.wait();
                 }
                 int initialConfirmedCommand = lastActionConfirmed.get();
                 int previousConfirmedCommand = initialConfirmedCommand;

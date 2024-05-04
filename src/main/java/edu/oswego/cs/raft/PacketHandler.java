@@ -30,6 +30,17 @@ public class PacketHandler extends Thread {
     private final List<Action> readOnlyLog;
     private final Encryption encryption;
 
+    /**
+     * Creates a Packet handling thread that parses, decrypts, and handles any actions for a received packet.
+     * @param serverSocket The server socket associated with a raft instance.
+     * @param raft A reference to the raft instance this handler is associated with.
+     * @param serverUsername The username connected to the associated raft instance.
+     * @param logConfirmerNotifier An object the RaftLogConfirmer waits on and can be notified upon certain packets being received. (Saves CPU cycles)
+     * @param actionMap A map of all the actions that are cached for out of order message reordering.
+     * @param followerLogMaintainerObject An object the FollowerLogMaintainer waits on and is notified when certain packets are received. (Saves CPU cycles)
+     * @param readOnlyLog The raft log (intended to be read only)
+     * @param encryption The encryption object that allows for Public Key, Private Key, and Secret Key use when sending/receiving messages.
+     */
     public PacketHandler(DatagramPacket packet, Raft raft, String serverUsername, DatagramSocket serverSocket, ScheduledExecutorService scheduledExecutorService, Object logConfirmerNotifier, ConcurrentHashMap<Integer, Action> actionMap, Object followerLogMaintainerObject, List<Action> readOnlyLog, Encryption encryption) {
         this.datagramPacket = packet;
         this.raft = raft;
